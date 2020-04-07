@@ -1,26 +1,29 @@
 import java.awt.*;
 import java.awt.image.*;
 import javax.swing.*;
-
 import java.io.*;
 import java.util.*;
 
-
+/**
+ * @author pham19
+ * Implements drawing shapes homework 1
+ *
+ */
 public class TCSS458Paint extends JPanel
 {
-    static int width;
+	private static final long serialVersionUID = -6972067082022136019L;
+	static int width;
     static int height;
     int imageSize;
-    int[] pixels;    
-    
+    int[] pixels;        
 
     /**
-     * 
-     * @param x
-     * @param y
-     * @param r
-     * @param g
-     * @param b
+     * Draws pixels in monitor
+     * @param x coordinate x
+     * @param y coordinate y
+     * @param r value of red color
+     * @param g value of green color
+     * @param b value of blue color
      */
     void drawPixel(int x, int y, int r, int g, int b) {
         pixels[(height-y-1)*width*3+x*3] = r;
@@ -28,8 +31,99 @@ public class TCSS458Paint extends JPanel
         pixels[(height-y-1)*width*3+x*3+2] = b;                
     }
     
+    
     /**
-     * 
+     * @param x0 coordinate x of Point P1
+     * @param y0 coordinate y of Point P1
+     * @param x1 coordinate x of Point P2
+     * @param y1 coordinate y of Point P2
+     * @param red value of red color
+     * @param green value of green color
+     * @param blue value of green color
+     */
+    public void plotLineLow(int x0, int y0, int x1, int y1, int red, int green, int blue) {
+    	int dx = x1 - x0;
+    	int dy = y1 - y0;
+    	int yi = 1;
+    	if (dy < 0) {
+    		yi = -1;
+    		dy = -dy;    		
+    	}
+    	int D = 2*dy - dx;
+    	int y = y0;
+    	for (int x = x0; x < x1; x++) {
+    		drawPixel(x, y, red, green, blue);
+    		if (D > 0) {
+    			y = y + yi;
+    			D = D - 2 * dx;
+    		}
+    		D = D + 2*dy;
+    	}    	
+    }
+    
+    /**
+     * @param x0 coordinate x of Point P1
+     * @param y0 coordinate y of Point P1
+     * @param x1 coordinate x of Point P2
+     * @param y1 coordinate y of Point P2
+     * @param red value of red color
+     * @param green value of green color
+     * @param blue value of green color
+     */
+    public void plotLineHigh(int x0, int y0, int x1, int y1, int red, int green, int blue) {
+    	int dx = x1 - x0;
+    	int dy = y1 - y0;
+    	int xi = 1;
+	    if (dx < 0) {
+	    	xi = -1;
+	        dx = -dx;
+	    }
+	    int D = 2*dx - dy;
+	    int x = x0;
+	    for (int y = y0; y < y1; y++) {
+	    	drawPixel(x, y, red, green, blue);
+	        if (D > 0) {
+	        	x = x + xi;
+	        	D = D - 2*dy;
+	        }
+	        D = D + 2*dx;
+	    }    		        
+    }
+    
+    /**
+     * Reference https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+     * @param x0 coordinate x of Point P1
+     * @param y0 coordinate y of Point P1
+     * @param x1 coordinate x of Point P2
+     * @param y1 coordinate y of Point P2
+     * @param red value of red color
+     * @param green value of green color
+     * @param blue value of green color
+     */
+    public void plotLine(int x0, int y0, int x1, int y1, int red, int green, int blue ) {
+    	if (Math.abs(y1 - y0) < Math.abs(x1 - x0)) {
+    		if (x0 > x1) {
+    			plotLineLow(x1, y1, x0, y0, red, green, blue);
+    		} else {
+    			plotLineLow(x0, y0, x1, y1, red, green, blue);
+    		}            
+    	} else {
+    		if (y0 > y1) {
+    			plotLineHigh(x1, y1, x0, y0, red, green, blue);
+    		}else {
+    			plotLineHigh(x0, y0, x1, y1, red, green, blue);
+    		}
+    	}
+    }
+    
+    
+    
+    /**
+     * Based on LINE or TRI to draw line or triangle 
+     * Draws line using Bresenham's algorithm
+     * Draws triangle 
+     * 	+ Draws edges
+     *  + Fill triangle
      */
     void createImage() {
     	double x0_world, y0_world, x1_world, y1_world, x2_world, y2_world;
@@ -101,7 +195,12 @@ public class TCSS458Paint extends JPanel
                 
                 //Convert V3 in real world to screen
                 x2_screen = (width - 1) * (x2_world + 1)/2; 
-                y2_screen = (height - 1) * (y2_world + 1)/2;  
+                y2_screen = (height - 1) * (y2_world + 1)/2; 
+                
+                //Drawing a line with Bresenham's algorithm
+                plotLine((int)x0_screen, (int)y0_screen, (int)x1_screen, (int)y1_screen, r, g, b);
+                plotLine((int)x1_screen, (int)y1_screen, (int)x2_screen, (int)y2_screen, r, g, b);
+                plotLine((int)x2_screen, (int)y2_screen, (int)x0_screen, (int)y0_screen, r, g, b);
                 
                 ArrayList<Vertex> vertexes = new ArrayList<Vertex>(); 
                 vertexes.add(new Vertex(x0_screen, y0_screen));
@@ -200,92 +299,7 @@ public class TCSS458Paint extends JPanel
         }
     }
     
-    /**
-     * 
-     * @param x0
-     * @param y0
-     * @param x1
-     * @param y1
-     * @param red
-     * @param green
-     * @param blue
-     */
-    public void plotLineLow(int x0, int y0, int x1, int y1, int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int yi = 1;
-    	if (dy < 0) {
-    		yi = -1;
-    		dy = -dy;    		
-    	}
-    	int D = 2*dy - dx;
-    	int y = y0;
-    	for (int x = x0; x < x1; x++) {
-    		drawPixel(x, y, red, green, blue);
-    		if (D > 0) {
-    			y = y + yi;
-    			D = D - 2 * dx;
-    		}
-    		D = D + 2*dy;
-    	}
-    	
-    }
     
-    /**
-     * 
-     * @param x0
-     * @param y0
-     * @param x1
-     * @param y1
-     * @param red
-     * @param green
-     * @param blue
-     */
-    public void plotLineHigh(int x0, int y0, int x1, int y1, int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int xi = 1;
-	    if (dx < 0) {
-	    	xi = -1;
-	        dx = -dx;
-	    }
-	    int D = 2*dx - dy;
-	    int x = x0;
-	    for (int y = y0; y < y1; y++) {
-	    	drawPixel(x, y, red, green, blue);
-	        if (D > 0) {
-	        	x = x + xi;
-	        	D = D - 2*dy;
-	        }
-	        D = D + 2*dx;
-	    }    		        
-    }
-    
-    /**
-     * 
-     * @param x0
-     * @param y0
-     * @param x1
-     * @param y1
-     * @param red
-     * @param green
-     * @param blue
-     */
-    public void plotLine(int x0, int y0, int x1, int y1, int red, int green, int blue ) {
-    	if (Math.abs(y1 - y0) < Math.abs(x1 - x0)) {
-    		if (x0 > x1) {
-    			plotLineLow(x1, y1, x0, y0, red, green, blue);
-    		} else {
-    			plotLineLow(x0, y0, x1, y1, red, green, blue);
-    		}            
-    	} else {
-    		if (y0 > y1) {
-    			plotLineHigh(x1, y1, x0, y0, red, green, blue);
-    		}else {
-    			plotLineHigh(x0, y0, x1, y1, red, green, blue);
-    		}
-    	}
-    }
     
 	/**
 	 * 
