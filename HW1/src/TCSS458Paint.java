@@ -327,12 +327,12 @@ public class TCSS458Paint extends JPanel
                 				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
                             	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
                 			}                			
-                		} else if((vertexes.get(1).getY() < vertexes.get(2).getY()) && (vertexes.get(2).getY() < vertexes.get(0).getY())) { // Vy0 < Vy2 < Vy1
+                		} else if((vertexes.get(1).getY() < vertexes.get(2).getY()) && (vertexes.get(2).getY() < vertexes.get(0).getY())) { // Vy1< Vy2 < Vy0
                 			if (y < vertexes.get(2).getY()) {
                 				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
                             	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
                 			} else {
-                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(1).getSlope());
+                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
                             	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
                 			}  
                 			
