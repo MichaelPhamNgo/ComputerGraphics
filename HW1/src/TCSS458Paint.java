@@ -290,118 +290,67 @@ public class TCSS458Paint extends JPanel
             	double maxX = 0;
                 
             	//Draw lines from MinY to MaxY
-                for (double y = minY; y < maxY; y++) {
-                	if (edges.get(0).getSlope() == 0) {                		
-                		// V1 and V2 are in a vertical line
-                		if (Double.isInfinite( edges.get(1).getSlope())) {
-                			minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                			maxX = vertexes.get(2).getX();                			
-                		} else { // There are 2 cases y2 < y1 or y2 > y1
-                			minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                			maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                		}                		
-                		for (double x = minX; x < maxX; x++) {
-                    		drawPixel((int)x, (int)y, r, g, b);
-                    	}
-                	} else if (Double.isInfinite(edges.get(0).getSlope())) {   
-                		if (vertexes.get(0).getY() < vertexes.get(1).getY()) {
-                			//Truong hop tam giac la tam giac co chua goc tu                			
-                			if(vertexes.get(2).getY() <= maxY && vertexes.get(1).getY() < vertexes.get(2).getY()) {
-                				//Chia lam 2 de ve
-                				if (y <= vertexes.get(1).getY()) {
-                					minX = vertexes.get(0).getX();
-                					maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                				} else {
-                					minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                					maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                				}
-                			} else if (vertexes.get(2).getY() >= minY && vertexes.get(1).getY() > vertexes.get(2).getY()) { //Truong hop tam giac chua toan goc nhon
-                				minX = vertexes.get(0).getX();
-                				maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			} else if (edges.get(1).getSlope() == 0) {
-                    			minX = vertexes.get(0).getX();
-                    			maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());               			
-                    		} 
-                		} else if (vertexes.get(0).getY() > vertexes.get(1).getY()) {
-                			//Truong hop tam giac la tam giac co chua goc tu                			
-                			if(vertexes.get(2).getY() <= maxY && vertexes.get(0).getY() < vertexes.get(2).getY()) {
-                				//Chia lam 2 de ve
-                				if (y <= vertexes.get(0).getY()) {
-                					minX = vertexes.get(1).getX();
-                					maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                				} else {
-                					minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                					maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                				}
-                			} else if (vertexes.get(2).getY() >= minY && vertexes.get(0).getY() > vertexes.get(2).getY()) { //Truong hop tam giac chua toan goc nhon
-                				minX = vertexes.get(1).getX();
-                				maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			} else if (edges.get(2).getSlope() == 0) {
-                    			minX = vertexes.get(0).getX();
-                    			maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());               			
-                    		} 
-                		} 
-                		for (double x = minX; x < maxX; x++) {
-                    		drawPixel((int)x, (int)y, r, g, b);
-                    	}
-                	} else {
-                		// Vy0 < Vy2 < Vy1
-                		if ((vertexes.get(0).getY() < vertexes.get(2).getY()) && (vertexes.get(2).getY() < vertexes.get(1).getY())) {
-                			if (y < vertexes.get(2).getY()) {
-                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                			} else {
-                				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			}                			
-                		} else if ((vertexes.get(0).getY() < vertexes.get(1).getY()) && (vertexes.get(1).getY() < vertexes.get(2).getY())) { // Vy0 < vy1 < vy2
-                			if (y < vertexes.get(1).getY()) {
-                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                			} else {
-                				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			}                 			
-                		} else if ((vertexes.get(2).getY() < vertexes.get(0).getY()) && (vertexes.get(0).getY() < vertexes.get(1).getY())) { // Vy2 < Vy0 < Vy1
-                			if (y < vertexes.get(0).getY()) {
-                				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                            	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-                			} else {
-                				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			}                			
-                		} else if ((vertexes.get(1).getY() < vertexes.get(0).getY()) && (vertexes.get(0).getY() < vertexes.get(2).getY())) { // Vy1 < Vy0 > Vy2
-                			if (y < vertexes.get(0).getY()) {
-                				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			} else {
-                				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                            	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-                			}                 			
-                		} else if ((vertexes.get(2).getY() < vertexes.get(1).getY()) && (vertexes.get(1).getY() < vertexes.get(0).getY())) { // Vy2 < Vy1 < Vy0
-                			if (y < vertexes.get(1).getY()) {
-                				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                            	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-                			} else {
-                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                            	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                			}                			
-                		} else if((vertexes.get(1).getY() < vertexes.get(2).getY()) && (vertexes.get(2).getY() < vertexes.get(0).getY())) { // Vy1< Vy2 < Vy0
-                			if (y < vertexes.get(2).getY()) {
-                				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-                			} else {
-                				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                            	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                			}  
-                			
-                		}
-                    	for (double x = minX; x < maxX; x++) {
-                    		drawPixel((int)x, (int)y, r, g, b);
-                    	}
+                for (double y = minY; y < maxY; y++) {        
+            		if ((vertexes.get(0).getY() <= vertexes.get(2).getY()) && (vertexes.get(2).getY() <= vertexes.get(1).getY())) { // Vy0 <= Vy2 <= Vy1
+            			if (y < vertexes.get(2).getY()) {
+            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
+            			} else {
+            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
+            			}                			
+            		} else if ((vertexes.get(0).getY() <= vertexes.get(1).getY()) && (vertexes.get(1).getY() <= vertexes.get(2).getY())) { // Vy0 <= vy1 <= vy2
+            			if (y < vertexes.get(1).getY()) {
+            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
+            			} else {
+            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
+            			}                 			
+            		} else if ((vertexes.get(2).getY() <= vertexes.get(0).getY()) && (vertexes.get(0).getY() <= vertexes.get(1).getY())) { // Vy2 <= Vy0 <= Vy1
+            			if (y < vertexes.get(0).getY()) {
+            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
+                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
+            			} else {
+            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
+            			}                			
+            		} else if ((vertexes.get(1).getY() <= vertexes.get(0).getY()) && (vertexes.get(0).getY() <= vertexes.get(2).getY())) { // Vy1 <= Vy0 <= Vy2
+            			if (y < vertexes.get(0).getY()) {
+            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
+            			} else {
+            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
+                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
+            			}                 			
+            		} else if ((vertexes.get(2).getY() <= vertexes.get(1).getY()) && (vertexes.get(1).getY() <= vertexes.get(0).getY())) { // Vy2 <= Vy1 <= Vy0
+            			if (y < vertexes.get(1).getY()) {
+            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
+                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
+            			} else {
+            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
+                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
+            			}                			
+            		} else if((vertexes.get(1).getY() <= vertexes.get(2).getY()) && (vertexes.get(2).getY() <= vertexes.get(0).getY())) { // Vy1 <= Vy2 <= Vy0
+            			if (y < vertexes.get(2).getY()) {
+            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
+            			} else {
+            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
+                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
+            			}  
+            		}
+                	
+            		// Check if slope is zero
+                	if (edges.get(0).getSlope() == 0) {
+                		minX =  vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
+                	} else if (edges.get(1).getSlope() == 0){
+                		maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
+                	} 
+                	for (double x = minX; x < maxX; x++) {
+                		drawPixel((int)x, (int)y, r, g, b);
                 	}
                 }
-
             }
         }
     }
