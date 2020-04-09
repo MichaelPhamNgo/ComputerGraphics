@@ -1,16 +1,18 @@
 /**
- * @author pham19
+ * Edges of a triangle with two vertexes. 
+ * @author pham19@uw.edu
+ * Homework 1: Lines and Triangles
+ * Due: April 10, 2020
  */
 public class Edge {
 	private Vertex v1;
 	private Vertex v2;
-	private double slope;
-	
+	private double slope;	
 	/**
-	 * Constructor Edge
+	 * Constructor of Edge class
 	 * @param v1 vertex v1
 	 * @param v2 vertex v2
-	 * @param slope
+	 * @param slope of vertex v1 and vertex v2
 	 */
 	public Edge(Vertex v1, Vertex v2) {
 		this.v1 = v1;
@@ -44,6 +46,4 @@ public class Edge {
 		return "Edges [V1(" + v1.getX() + ", " + v1.getY() + "), V2(" 
 							+ v2.getX() + ", " + v2.getY() + "), slope=" + slope + "]";
 	}
-		
-
 }

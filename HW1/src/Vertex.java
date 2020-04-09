@@ -1,14 +1,15 @@
 /**
- * Compare vertexes in a collection.
- * @author pham19
- *
+ * I want to arrange vertexes of a triangle with x coordinate first. 
+ * @author pham19@uw.edu
+ * Homework 1: Lines and Triangles
+ * Due: April 10, 2020
  */
 public class Vertex implements Comparable<Vertex> {
 	private double x;
 	private double y;    	
 	
 	/**
-	 * Initialize a vertex
+	 * Constructor of Vertex class
 	 * @param x coordinate x
 	 * @param y coordinate y
 	 */
