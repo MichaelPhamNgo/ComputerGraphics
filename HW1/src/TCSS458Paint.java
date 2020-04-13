@@ -168,20 +168,8 @@ public class TCSS458Paint extends JPanel
     
     /**
      * Draw lines or triangles.
-     * - Draw a line
-     * 		+ We need two points to draw a line (Using Bresenham's algorithm to draw a line)
-     * - Draw a triangle
-     * 		+ We need three points to draw a triangle.
-     * 		+ Step 1: Draw edges of a triangle
-     * 		+ Step 2: For y from MinY to MaxY. Use scanline algorithm to fill the triangle 			
-     * 			- Situation 1: Horizontal lines and vertical lines
-     * 			- Situation 2: Draw from MinX to MaxX
      */
-    void createImage() {
-    	//The coordinates from the input file
-    	double x0_world, y0_world, x1_world, y1_world, x2_world, y2_world;
-    	x0_world = y0_world = x1_world = y1_world = x2_world = y2_world = 0;
-    	
+	void createImage() {
     	//The converted coordinates
     	double x0_screen, y0_screen, x1_screen, y1_screen, x2_screen, y2_screen;
     	x0_screen = y0_screen = x1_screen = y1_screen = x2_screen = y2_screen = 0;
@@ -210,48 +198,28 @@ public class TCSS458Paint extends JPanel
                 g = (int) (input.nextDouble() * 255);
                 b = (int) (input.nextDouble() * 255);
             }else if (command.equals("LINE")){
-            	//Point P0
-            	x0_world = input.nextDouble();
-            	y0_world = input.nextDouble();       
-            	
             	//Convert P0 in read world to screen
-            	x0_screen = (width - 1) * (x0_world + 1)/2;
-                y0_screen = (height - 1) * (y0_world + 1)/2;  
-            	
-            	//Point P1
-            	x1_world = input.nextDouble();
-            	y1_world = input.nextDouble();
+            	x0_screen = convertToScreen(width, input.nextDouble());
+                y0_screen = convertToScreen(height, input.nextDouble());
             	
                 //Convert P1 in read world to screen
-                x1_screen = (width - 1) * (x1_world + 1)/2;
-                y1_screen = (height - 1) * (y1_world + 1)/2;
+                x1_screen = convertToScreen(width, input.nextDouble());
+                y1_screen = convertToScreen(height, input.nextDouble());
                 
                 //Draws a line with Bresenham's algorithm
                 plotLine((int)x0_screen, (int)y0_screen, (int)x1_screen, (int)y1_screen, r, g, b);
             }  else if (command.equals("TRI")) {
-            	//Vertex V0
-            	x0_world = input.nextDouble();
-            	y0_world = input.nextDouble();
+            	//Convert P0 in read world to screen
+            	x0_screen = convertToScreen(width, input.nextDouble());
+                y0_screen = convertToScreen(height, input.nextDouble());
             	
-            	//Convert V1 in real world to screen
-            	x0_screen = (width - 1) * (x0_world + 1)/2;
-                y0_screen = (height - 1) * (y0_world + 1)/2;
-            	
-            	//Vertex V1
-            	x1_world = input.nextDouble();
-            	y1_world = input.nextDouble();
-            	
-            	//Convert V1 in real world to screen
-                x1_screen = (width - 1) * (x1_world + 1)/2;
-                y1_screen = (height - 1) * (y1_world + 1)/2;
-            	
-            	//Vertex V2
-            	x2_world = input.nextDouble();
-            	y2_world = input.nextDouble();
-            	
-                //Convert V1 in real world to screen
-                x2_screen = (width - 1) * (x2_world + 1)/2; 
-                y2_screen = (height - 1) * (y2_world + 1)/2; 
+                //Convert P1 in read world to screen
+                x1_screen = convertToScreen(width, input.nextDouble());
+                y1_screen = convertToScreen(height, input.nextDouble()); 
+                
+                //Convert P1 in read world to screen
+                x2_screen = convertToScreen(width, input.nextDouble());
+                y2_screen = convertToScreen(height, input.nextDouble()); 
                 
                 //Step 1: Draw the edges of a triangle first.
                 plotLine((int)x0_screen, (int)y0_screen, (int)x1_screen, (int)y1_screen, r, g, b);
@@ -267,13 +235,7 @@ public class TCSS458Paint extends JPanel
                 
                 //Sorts vertexes based on x
                 Collections.sort(vertexes);
-                
-                //Edge data are the information of P0 and P1 and its slope.
-                ArrayList<Edge> edges = new ArrayList<Edge>(); 
-                edges.add(new Edge(vertexes.get(1), vertexes.get(0)));
-                edges.add(new Edge(vertexes.get(1), vertexes.get(2)));
-                edges.add(new Edge(vertexes.get(0), vertexes.get(2)));
-                                
+               
                 //Find the MinY and MaxY
                 ArrayList<Double> coorY = new ArrayList<Double>();
                 coorY.add(y0_screen);
@@ -286,67 +248,19 @@ public class TCSS458Paint extends JPanel
                 //Get MinY and MaxY
                 double minY = coorY.get(0);
                 double maxY = coorY.get(2);
-                double minX = 0;
-            	double maxX = 0;
-                
             	//Draw lines from MinY to MaxY
-                for (double y = minY; y < maxY; y++) {        
-            		if ((vertexes.get(0).getY() <= vertexes.get(2).getY()) && (vertexes.get(2).getY() <= vertexes.get(1).getY())) { // Vy0 <= Vy2 <= Vy1
-            			if (y < vertexes.get(2).getY()) {
-            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-            			} else {
-            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-            			}                			
-            		} else if ((vertexes.get(0).getY() <= vertexes.get(1).getY()) && (vertexes.get(1).getY() <= vertexes.get(2).getY())) { // Vy0 <= vy1 <= vy2
-            			if (y < vertexes.get(1).getY()) {
-            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-            			} else {
-            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-            			}                 			
-            		} else if ((vertexes.get(2).getY() <= vertexes.get(0).getY()) && (vertexes.get(0).getY() <= vertexes.get(1).getY())) { // Vy2 <= Vy0 <= Vy1
-            			if (y < vertexes.get(0).getY()) {
-            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-            			} else {
-            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-            			}                			
-            		} else if ((vertexes.get(1).getY() <= vertexes.get(0).getY()) && (vertexes.get(0).getY() <= vertexes.get(2).getY())) { // Vy1 <= Vy0 <= Vy2
-            			if (y < vertexes.get(0).getY()) {
-            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-            			} else {
-            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-            			}                 			
-            		} else if ((vertexes.get(2).getY() <= vertexes.get(1).getY()) && (vertexes.get(1).getY() <= vertexes.get(0).getY())) { // Vy2 <= Vy1 <= Vy0
-            			if (y < vertexes.get(1).getY()) {
-            				minX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                        	maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(1).getSlope());
-            			} else {
-            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-            			}                			
-            		} else if((vertexes.get(1).getY() <= vertexes.get(2).getY()) && (vertexes.get(2).getY() <= vertexes.get(0).getY())) { // Vy1 <= Vy2 <= Vy0
-            			if (y < vertexes.get(2).getY()) {
-            				minX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(1).getX() + ((y - vertexes.get(1).getY()) / edges.get(1).getSlope());
-            			} else {
-            				minX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(0).getSlope());
-                        	maxX = vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-            			}  
-            		}
+                for (double y = minY; y < maxY; y++) {
+                	double[] arrX = fillTriangle(vertexes, minY, maxY , y);
+                	double minX = arrX[0];
+                	double maxX = arrX[1];
                 	
-            		// Check if slope is zero
-                	if (edges.get(0).getSlope() == 0) {
-                		minX =  vertexes.get(0).getX() + ((y - vertexes.get(0).getY()) / edges.get(2).getSlope());
-                	} else if (edges.get(1).getSlope() == 0){
-                		maxX = vertexes.get(2).getX() + ((y - vertexes.get(2).getY()) / edges.get(2).getSlope());
-                	} 
+                	double temp = 0;
+                	if (maxX < minX) {
+                		temp = minX;
+                		minX = maxX;
+                		maxX = temp;
+                	}
+                	
                 	for (double x = minX; x < maxX; x++) {
                 		drawPixel((int)x, (int)y, r, g, b);
                 	}
@@ -354,7 +268,68 @@ public class TCSS458Paint extends JPanel
             }
         }
     }
-
+    
+    /**
+     * Convert x or y in world to x or y in screen
+     * @param size width or height
+     * @param c x world or y world
+     * @return x screen or y screen
+     */
+    private double convertToScreen(double size, double c) {
+    	return (size - 1) * (c + 1)/2;
+    }
+    
+    /**
+     * Compute the slope of vertex v0 and Vertex v1
+     * @param v0
+     * @param v1
+     * @return
+     */
+    private double slope(Vertex v0, Vertex v1) {
+    	return (v0.getY() - v1.getY())/(v0.getX() - v1.getX());
+    }
+    
+    /**
+     * Find minX maxX 
+     * @param vertexes v0, v1, v2
+     * @param minY 
+     * @param maxY
+     * @param y
+     * @return an array minx, maxx
+     */
+	private double[] fillTriangle(ArrayList<Vertex> vertexes, double minY, double maxY, double y) {
+		double[] arrX = new double[2];
+    	Vertex v0 = new Vertex();
+    	Vertex v1 = new Vertex();
+    	Vertex v2 = new Vertex();
+    	int flag1 = 0;
+    	int flag2 = 0;
+    	
+    	//Sort v0, v1, v2 
+    	for (Vertex vertex : vertexes) {
+    		if (vertex.getY() == minY 
+    				&& flag1 == 0) {
+    			v0 = vertex;
+    			flag1 = 1;
+    		} else if (vertex.getY() == maxY 
+    				&& flag2 == 0) {
+    			v1 = vertex;
+    			flag2 = 1;
+    		} else {
+    			v2 = vertex;
+    		}
+    	}
+    	
+    	if (y < v2.getY()) {
+			arrX[0] = v0.getX() + ((y - v0.getY()) / slope(v0, v1));
+			arrX[1] = v0.getX() + ((y - v0.getY()) / slope(v0, v2));
+		} else {
+			arrX[0] = v1.getX() + ((y - v1.getY()) / slope(v1, v0));
+			arrX[1] = v1.getX() + ((y - v1.getY()) / slope(v1, v2));
+		}
+		return arrX;
+    }
+	
     /**
      * 
      * @param args
@@ -376,5 +351,47 @@ public class TCSS458Paint extends JPanel
 
     }
 
+    public class Vertex implements Comparable<Vertex> {
+    	private double x;
+    	private double y;    	
+    	
+    	/**
+    	 * Constructor of Vertex class
+    	 * @param x coordinate x
+    	 * @param y coordinate y
+    	 */
+    	public Vertex(double x, double y) {
+    		this.x = x;
+    		this.y = y;
+    	}
+    	
+    	public Vertex() {
+    		this(0,0);
+    	}	
+
+    	/**
+    	 * @return x
+    	 */
+    	public double getX() {
+    		return x;
+    	}
+
+    	/**
+    	 * @return y
+    	 */
+    	public double getY() {
+    		return y;
+    	}
+
+    	@Override
+    	public int compareTo(Vertex o) {
+    		return (int)(this.x - o.x);
+    	}
+
+    	@Override
+    	public String toString() {
+    		return "Vertex [x=" + x + ", y=" + y + "]";
+    	}
+    }
     
 }
