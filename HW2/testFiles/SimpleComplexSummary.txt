@@ -1,0 +1,13 @@
+Simple1.txt  Just a triangle
+Simple2.txt  Scale
+Simple3.txt  Nonuniform Scale
+Simple4.txt  Translate
+Simple5.txt  RotateZ
+Simple6.txt  RotateY
+Simple7.txt  RotateX
+Simple8.txt  Scale RotateZ Translate
+Simple9.txt  Same as Simple8, different order
+Simple10.txt 3 Triangles 
+Complex1.txt 6 color solid cube
+Complex2.txt 6 color cube rotated one way
+Complex3.txt 6 color cube rotated another way

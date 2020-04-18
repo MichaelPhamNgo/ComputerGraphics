@@ -1,15 +1,17 @@
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.*;
 import javax.swing.*;
 import java.io.*;
 import java.util.*;
 /**
- * Implements drawing shapes homework 1
+ * Implements drawing shapes homework 2
  * @author pham19@uw.edu
- * Homework 1: Lines and Triangles
+ * Homework 2: Lines and Triangles
  * Due: April 10, 2020
  */
-public class TCSS458Paint extends JPanel
+public class TCSS458Paint extends JPanel implements KeyListener 
 {
 	private static final long serialVersionUID = -6972067082022136019L;
 	private static File selectedFile = null;
@@ -172,10 +174,6 @@ public class TCSS458Paint extends JPanel
      * Draw lines or triangles.
      */
 	void createImage() {
-    	//The converted coordinates
-    	double x0_screen, y0_screen, x1_screen, y1_screen, x2_screen, y2_screen;
-    	x0_screen = y0_screen = x1_screen = y1_screen = x2_screen = y2_screen = 0;
-    	
     	// RGB color
     	int r, g, b;
     	r = g = b = 0;    	
@@ -199,56 +197,44 @@ public class TCSS458Paint extends JPanel
                 r = (int) (input.nextDouble() * 255);
                 g = (int) (input.nextDouble() * 255);
                 b = (int) (input.nextDouble() * 255);
-            }else if (command.equals("LINE")){
-            	//Convert P0 in read world to screen
-            	x0_screen = convertToScreen(width, input.nextDouble());
-                y0_screen = convertToScreen(height, input.nextDouble());
+            } else if (command.equals("TRI")) {
+            	Point p0 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
+            	Point p1 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
+            	Point p2 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
             	
-                //Convert P1 in read world to screen
-                x1_screen = convertToScreen(width, input.nextDouble());
-                y1_screen = convertToScreen(height, input.nextDouble());
-                
-                //Draws a line with Bresenham's algorithm
-                plotLine((int)Math.round(x0_screen), (int)Math.round(y0_screen), 
-                		(int)Math.round(x1_screen), (int)Math.round(y1_screen), r, g, b);
-            }  else if (command.equals("TRI")) {
-            	//Convert P0 in read world to screen
-            	x0_screen = convertToScreen(width, input.nextDouble());
-                y0_screen = convertToScreen(height, input.nextDouble());
-            	
-                //Convert P1 in read world to screen
-                x1_screen = convertToScreen(width, input.nextDouble());
-                y1_screen = convertToScreen(height, input.nextDouble()); 
-                
-                //Convert P1 in read world to screen
-                x2_screen = convertToScreen(width, input.nextDouble());
-                y2_screen = convertToScreen(height, input.nextDouble()); 
-                
+            	double x0 = convertToScreen(width ,p0.getX());
+            	double y0 = convertToScreen(height ,p0.getY());            	
+            	double x1 = convertToScreen(width ,p1.getX());
+            	double y1 = convertToScreen(height ,p1.getY());            	
+            	double x2 = convertToScreen(width ,p2.getX());
+            	double y2 = convertToScreen(height ,p2.getY());
+            	                
                 //Step 1: Draw the edges of a triangle first.
-                plotLine((int)Math.round(x0_screen), (int)Math.round(y0_screen), 
-                		(int)Math.round(x1_screen), (int)Math.round(y1_screen), r, g, b);
-                plotLine((int)Math.round(x1_screen), (int)Math.round(y1_screen), 
-                		(int)Math.round(x2_screen), (int)Math.round(y2_screen), r, g, b);
-                plotLine((int)Math.round(x2_screen), (int)Math.round(y2_screen), 
-                		(int)Math.round(x0_screen), (int)Math.round(y0_screen), r, g, b);
+                plotLine((int)Math.round(x0), (int)Math.round(y0), 
+                		(int)Math.round(x1), (int)Math.round(y1), r, g, b);
+                plotLine((int)Math.round(x1), (int)Math.round(y1), 
+                		(int)Math.round(x2), (int)Math.round(y2), r, g, b);
+                plotLine((int)Math.round(x2), (int)Math.round(y2), 
+                		(int)Math.round(x0), (int)Math.round(y0), r, g, b);
                 
                 //Step 2: Use scanline algorithm to fill the triangle.
                 //Add vertexes to ArrayList to array them in x order.
-                ArrayList<Vertex> vertexes = new ArrayList<Vertex>(); 
-                vertexes.add(new Vertex(x0_screen, y0_screen));
-                vertexes.add(new Vertex(x1_screen, y1_screen));
-                vertexes.add(new Vertex(x2_screen, y2_screen));  
+                ArrayList<Point2D> points = new ArrayList<Point2D>(); 
+                points.add(new Point2D(x0, y0));
+                points.add(new Point2D(x1, y1));
+                points.add(new Point2D(x2, y2));  
                 
                 //Sorts vertexes based on x
-                Collections.sort(vertexes);
+                Collections.sort(points);
                 
                 //Draw a triangle
-                fillTriangle(vertexes, r, g, b);
+                fillTriangle(points, r, g, b);
 
             }
         }
     }
-    
+	
+ 
     /**
      * Convert x or y in world to x or y in screen
      * @param size width or height
@@ -265,7 +251,7 @@ public class TCSS458Paint extends JPanel
      * @param v1
      * @return
      */
-    private double slope(Vertex v0, Vertex v1) {
+    private double slope(Point2D v0, Point2D v1) {
     	return (v0.getY() - v1.getY())/(v0.getX() - v1.getX());
     }
     
@@ -277,30 +263,30 @@ public class TCSS458Paint extends JPanel
      * @param y
      * @return an array minx, maxx
      */
-	private void fillTriangle(ArrayList<Vertex> vertexes, int r, int g, int b) {		
-		//Sort vertexes by Y
-		sortByY(vertexes);
+	private void fillTriangle(ArrayList<Point2D> points, int r, int g, int b) {		
+		//Sort vertices by Y
+		sortByY(points);
 		
-		Vertex v0 = new Vertex();				
-		Vertex v1 = new Vertex();				
-		Vertex v2 = new Vertex();
+		Point2D p0 = new Point2D();				
+		Point2D p1 = new Point2D();				
+		Point2D p2 = new Point2D();
 		
-		v0 = vertexes.get(0);
-		v1 = vertexes.get(1);
-		v2 = vertexes.get(2);
+		p0 = points.get(0);
+		p1 = points.get(1);
+		p2 = points.get(2);
     	
-    	double minY = v0.getY();
-    	double maxY = v2.getY();
+    	double minY = p0.getY();
+    	double maxY = p2.getY();
     	double minX = 0;
     	double maxX = 0;
     	
     	for (double y = minY; y < maxY; y++) {
-    		if (y < vertexes.get(1).getY()) {
-    			minX = v0.getX() + ((y - v0.getY()) / slope(v0, v1));
-    			maxX = v0.getX() + ((y - v0.getY()) / slope(v0, v2));
+    		if (y < points.get(1).getY()) {
+    			minX = p0.getX() + ((y - p0.getY()) / slope(p0, p1));
+    			maxX = p0.getX() + ((y - p0.getY()) / slope(p0, p2));
     		} else {
-    			minX = v2.getX() + ((y - v2.getY()) / slope(v2, v1));
-    			maxX = v2.getX() + ((y - v2.getY()) / slope(v2, v0));
+    			minX = p2.getX() + ((y - p2.getY()) / slope(p2, p1));
+    			maxX = p2.getX() + ((y - p2.getY()) / slope(p2, p0));
     		}
     		
     		double temp = 0;
@@ -320,14 +306,14 @@ public class TCSS458Paint extends JPanel
 	 * Sorts vertexes by y.
 	 * @param vertexes
 	 */
-	public void sortByY(ArrayList<Vertex> vertexes) {
-		Vertex vtemp = new Vertex();
-		for (int i = 0; i < vertexes.size() - 1; i++) {
-			for(int j = i + 1; j < vertexes.size(); j++) {
-				if (vertexes.get(i).getY() > vertexes.get(j).getY()) {
-					vtemp = vertexes.get(i);
-					vertexes.set(i, vertexes.get(j));
-					vertexes.set(j, vtemp);
+	public void sortByY(ArrayList<Point2D> points) {
+		Point2D point = new Point2D();
+		for (int i = 0; i < points.size() - 1; i++) {
+			for(int j = i + 1; j < points.size(); j++) {
+				if (points.get(i).getY() > points.get(j).getY()) {
+					point = points.get(i);
+					points.set(i, points.get(j));
+					points.set(j, point);
 				}
 			}
 		}
@@ -346,7 +332,8 @@ public class TCSS458Paint extends JPanel
         JPanel rootPane = new TCSS458Paint();    
         getDim(rootPane);
         rootPane.setPreferredSize(new Dimension(width,height));
-
+        
+        frame.addKeyListener((KeyListener) rootPane);
         frame.getContentPane().add(rootPane);
         frame.pack();      
         frame.setLocationRelativeTo( null );
@@ -354,7 +341,25 @@ public class TCSS458Paint extends JPanel
 
     }
 
-    public class Vertex implements Comparable<Vertex> {
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public class Point2D implements Comparable<Point2D> {
     	private double x;
     	private double y;    	
     	
@@ -363,12 +368,12 @@ public class TCSS458Paint extends JPanel
     	 * @param x coordinate x
     	 * @param y coordinate y
     	 */
-    	public Vertex(double x, double y) {
+    	public Point2D(double x, double y) {
     		this.x = x;
     		this.y = y;
     	}
     	
-    	public Vertex() {
+    	public Point2D() {
     		this(0,0);
     	}	
 
@@ -387,7 +392,7 @@ public class TCSS458Paint extends JPanel
     	}
 
     	@Override
-    	public int compareTo(Vertex o) {
+    	public int compareTo(Point2D o) {
     		return (int)(this.x - o.x);
     	}
 
@@ -396,5 +401,4 @@ public class TCSS458Paint extends JPanel
     		return "Vertex [x=" + x + ", y=" + y + "]";
     	}
     }
-    
 }
