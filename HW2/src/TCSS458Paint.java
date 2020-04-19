@@ -8,8 +8,8 @@ import java.util.*;
 /**
  * Implements drawing shapes homework 2
  * @author pham19@uw.edu
- * Homework 2: Lines and Triangles
- * Due: April 10, 2020
+ * Homework 2: Draw graphs in 3D
+ * Due: April 24, 2020
  */
 public class TCSS458Paint extends JPanel implements KeyListener 
 {
@@ -179,10 +179,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	r = g = b = 0;  
     	
     	// Load Identity Matrix
-    	Matrix lIdentityMatrix = new Matrix(4, 4);
-    	Matrix tranformationMatrix = new Matrix(4, 4);
-    	tranformationMatrix = new Transformation().LoadIdentityMatrix();
-    	Transformation transformation = new Transformation();
+    	Matrix tranformationMatrix = new Transformation().LoadIdentityMatrix();    	
     	
         Scanner input = getFile();
         while (input.hasNext()) {
@@ -204,31 +201,24 @@ public class TCSS458Paint extends JPanel implements KeyListener
                 g = (int) (input.nextDouble() * 255);
                 b = (int) (input.nextDouble() * 255);
             } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
-            	lIdentityMatrix = new Transformation().LoadIdentityMatrix();
+            	tranformationMatrix = new Transformation().LoadIdentityMatrix();
             } else if (command.equals("SCALE")) {
-            	tranformationMatrix = tranformationMatrix.multiply(
-            			new Transformation().Scaling(
-            					input.nextDouble(), 
-            							input.nextDouble(),
-            								input.nextDouble()));
+            	tranformationMatrix = new Transformation().Scaling(input.nextDouble(), 
+            							input.nextDouble(),	input.nextDouble())
+            								.multiply(tranformationMatrix);
             } else if (command.equals("ROTATEZ")) {
-            	tranformationMatrix = tranformationMatrix.multiply(
-            			new Transformation()
-            			.RotationZ(input.nextDouble()));
+            	tranformationMatrix = new Transformation().RotationZ(input.nextDouble())
+            								.multiply(tranformationMatrix);
             } else if (command.equals("ROTATEY")) {
-            	tranformationMatrix = tranformationMatrix.multiply(
-            			new Transformation()
-            			.RotationY(input.nextDouble()));
+            	tranformationMatrix = new Transformation().RotationY(input.nextDouble())
+											.multiply(tranformationMatrix);
             } else if (command.equals("ROTATEX")) {
-            	tranformationMatrix = tranformationMatrix.multiply(
-            			new Transformation()
-            			.RotationX(input.nextDouble()));
+            	tranformationMatrix = new Transformation().RotationX(input.nextDouble())
+											.multiply(tranformationMatrix);
             } else if (command.equals("TRANSLATE")) {
-            	tranformationMatrix = tranformationMatrix.multiply(
-            			new Transformation().Translation(
-            					input.nextDouble(), 
-            							input.nextDouble(),
-            								input.nextDouble()));
+            	tranformationMatrix = new Transformation().Translation(input.nextDouble(), 
+            							input.nextDouble(), input.nextDouble())
+            								.multiply(tranformationMatrix);
             }  else if (command.equals("TRI")) {
             	Point3D p0 = new Point3D(input.nextDouble(), 
             								input.nextDouble(), 
@@ -240,7 +230,9 @@ public class TCSS458Paint extends JPanel implements KeyListener
             								input.nextDouble(), 
             									input.nextDouble(), 1);
             	
-            	tranformationMatrix = tranformationMatrix.multiply(transformation.paralleProjection());
+            	//TransformedVector = TranslationMatrix * RotationMatrix * ScaleMatrix * OriginalVector;
+            	tranformationMatrix = tranformationMatrix.multiply(
+            							new Transformation().paralleProjection());
             	
             	Matrix matrix0 = new Matrix(4,1);
             	matrix0 = tranformationMatrix.multiply(p0.convertFromPoint3D());
