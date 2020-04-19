@@ -195,11 +195,7 @@ public class TCSS458Paint extends JPanel
                 		drawPixel( i, j, 255, 255, 255);
                 	}                	
                 }
-            } else if (command.equals("RGB")) {
-                r = (int) (input.nextDouble() * 255);
-                g = (int) (input.nextDouble() * 255);
-                b = (int) (input.nextDouble() * 255);
-            }else if (command.equals("LINE")){
+            } else if (command.equals("LINE")){
             	//Convert P0 in read world to screen
             	x0_screen = convertToScreen(width, input.nextDouble());
                 y0_screen = convertToScreen(height, input.nextDouble());

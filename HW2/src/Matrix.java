@@ -33,10 +33,29 @@ public class Matrix {
 		this.matrix = new double[rows][columns];
 	}
 	
+	/**
+	 * @param matrix a 2D matrix
+	 */
 	public Matrix(double[][] matrix) {
 		this.rows = matrix.length;
 		this.columns = matrix[0].length;
 		this.matrix = matrix;
+	}
+	
+	/** 
+	 * @param rows
+	 * @param columns
+	 * @return a 2D matrix 
+	 */
+	public Matrix createIdentityMatrix(int rows, int columns) {
+		if (rows != columns) {
+			throw new IllegalArgumentException ("Cannot compute this operation");
+		}	
+		double[][] identityMatrix = new double[rows][columns];	
+		for(int i = 0; i < rows; i++) {			
+			identityMatrix[i][i] = 1;			
+		}
+		return new Matrix(identityMatrix);
 	}
 	
 	/**

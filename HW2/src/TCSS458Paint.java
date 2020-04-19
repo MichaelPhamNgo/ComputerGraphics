@@ -17,7 +17,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	private static File selectedFile = null;
 	private static int width;
 	private static int height;
-	private int imageSize;
+	private int imageSize; 
 	private int[] pixels;       
     
     /**
@@ -176,7 +176,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	void createImage() {
     	// RGB color
     	int r, g, b;
-    	r = g = b = 0;    	
+    	r = g = b = 0;  
+    	
+    	// Load Identity Matrix
+    	Matrix lIdentityMatrix = new Matrix(4, 4);
+    	Matrix tranformationMatrix = new Matrix(4, 4);
+    	tranformationMatrix = new Transformation().LoadIdentityMatrix();
+    	Transformation transformation = new Transformation();
     	
         Scanner input = getFile();
         while (input.hasNext()) {
@@ -193,21 +199,66 @@ public class TCSS458Paint extends JPanel implements KeyListener
                 		drawPixel( i, j, 255, 255, 255);
                 	}                	
                 }
-            } else if (command.equals("RGB")) {
+            }  else if (command.equals("RGB")) {
                 r = (int) (input.nextDouble() * 255);
                 g = (int) (input.nextDouble() * 255);
                 b = (int) (input.nextDouble() * 255);
-            } else if (command.equals("TRI")) {
-            	Point p0 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
-            	Point p1 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
-            	Point p2 = new Point(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1).paralleProjection();
+            } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
+            	lIdentityMatrix = new Transformation().LoadIdentityMatrix();
+            } else if (command.equals("SCALE")) {
+            	tranformationMatrix = tranformationMatrix.multiply(
+            			new Transformation().Scaling(
+            					input.nextDouble(), 
+            							input.nextDouble(),
+            								input.nextDouble()));
+            } else if (command.equals("ROTATEZ")) {
+            	tranformationMatrix = tranformationMatrix.multiply(
+            			new Transformation()
+            			.RotationZ(input.nextDouble()));
+            } else if (command.equals("ROTATEY")) {
+            	tranformationMatrix = tranformationMatrix.multiply(
+            			new Transformation()
+            			.RotationY(input.nextDouble()));
+            } else if (command.equals("ROTATEX")) {
+            	tranformationMatrix = tranformationMatrix.multiply(
+            			new Transformation()
+            			.RotationX(input.nextDouble()));
+            } else if (command.equals("TRANSLATE")) {
+            	tranformationMatrix = tranformationMatrix.multiply(
+            			new Transformation().Translation(
+            					input.nextDouble(), 
+            							input.nextDouble(),
+            								input.nextDouble()));
+            }  else if (command.equals("TRI")) {
+            	Point3D p0 = new Point3D(input.nextDouble(), 
+            								input.nextDouble(), 
+            									input.nextDouble(), 1);
+            	Point3D p1 = new Point3D(input.nextDouble(), 
+            								input.nextDouble(), 
+            									input.nextDouble(), 1);
+            	Point3D p2 = new Point3D(input.nextDouble(), 
+            								input.nextDouble(), 
+            									input.nextDouble(), 1);
             	
-            	double x0 = convertToScreen(width ,p0.getX());
-            	double y0 = convertToScreen(height ,p0.getY());            	
-            	double x1 = convertToScreen(width ,p1.getX());
-            	double y1 = convertToScreen(height ,p1.getY());            	
-            	double x2 = convertToScreen(width ,p2.getX());
-            	double y2 = convertToScreen(height ,p2.getY());
+            	tranformationMatrix = tranformationMatrix.multiply(transformation.paralleProjection());
+            	
+            	Matrix matrix0 = new Matrix(4,1);
+            	matrix0 = tranformationMatrix.multiply(p0.convertFromPoint3D());
+            	
+            	Matrix matrix1 = new Matrix(4,1);
+            	matrix1 = tranformationMatrix.multiply(p1.convertFromPoint3D());
+            	
+            	Matrix matrix2 = new Matrix(4,1);
+            	matrix2 = tranformationMatrix.multiply(p2.convertFromPoint3D());
+            	
+            	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
+            	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
+            	
+            	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
+            	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
+            	
+            	double x2 = convertToScreen(width,matrix2.getMatrix()[0][0]);
+            	double y2 = convertToScreen(height, matrix2.getMatrix()[1][0]);
             	                
                 //Step 1: Draw the edges of a triangle first.
                 plotLine((int)Math.round(x0), (int)Math.round(y0), 
@@ -358,47 +409,4 @@ public class TCSS458Paint extends JPanel implements KeyListener
 		// TODO Auto-generated method stub
 		
 	}
-	
-	public class Point2D implements Comparable<Point2D> {
-    	private double x;
-    	private double y;    	
-    	
-    	/**
-    	 * Constructor of Vertex class
-    	 * @param x coordinate x
-    	 * @param y coordinate y
-    	 */
-    	public Point2D(double x, double y) {
-    		this.x = x;
-    		this.y = y;
-    	}
-    	
-    	public Point2D() {
-    		this(0,0);
-    	}	
-
-    	/**
-    	 * @return x
-    	 */
-    	public double getX() {
-    		return x;
-    	}
-
-    	/**
-    	 * @return y
-    	 */
-    	public double getY() {
-    		return y;
-    	}
-
-    	@Override
-    	public int compareTo(Point2D o) {
-    		return (int)(this.x - o.x);
-    	}
-
-    	@Override
-    	public String toString() {
-    		return "Vertex [x=" + x + ", y=" + y + "]";
-    	}
-    }
 }
