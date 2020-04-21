@@ -1,27 +1,16 @@
-public class Point3D {
+public class Point implements Comparable<Point>{
 	private double x;
 	private double y;
 	private double z;
 	private double w;
 	
-	public Point3D(double x, double y, double z, double w) {
+	public Point() {}
+	
+	public Point(double x, double y, double z, double w) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.w = w;
-	}
-	
-	public Matrix convertFromPoint3D() {
-		double[][] matrix = new double[4][1];
-		matrix[0][0] = this.x;
-		matrix[1][0] = this.y;
-		matrix[2][0] = this.z;
-		matrix[3][0] = this.w;
-		return new Matrix(matrix);
-	}
-	
-	public Point3D() {
-		this(0, 0, 0, 1);			
 	}
 	
 	public double getX() {
@@ -31,7 +20,7 @@ public class Point3D {
 	public void setX(double x) {
 		this.x = x;
 	}
-	
+
 	public double getY() {
 		return y;
 	}
@@ -58,6 +47,12 @@ public class Point3D {
 
 	@Override
 	public String toString() {
-		return "Point [x=" + x + ", y=" + y + ", z=" + z + ", w=" + w + "]";
+		return "Point [x=" + this.x + ", y=" + this.y + ", z=" 
+						+ this.z + ", w=" + this.w + "]";
+	}
+
+	@Override
+	public int compareTo(Point o) {
+		return (int)(this.x - o.x);
 	}
 }

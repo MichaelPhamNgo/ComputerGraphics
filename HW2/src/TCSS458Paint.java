@@ -11,7 +11,7 @@ import java.util.*;
  * Homework 2: Draw graphs in 3D
  * Due: April 24, 2020
  */
-public class TCSS458Paint extends JPanel implements KeyListener 
+public class TCSS458Paint extends JPanel
 {
 	private static final long serialVersionUID = -6972067082022136019L;
 	private static File selectedFile = null;
@@ -19,7 +19,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	private static int height;
 	private int imageSize; 
 	private int[] pixels;       
-    
+    private double zBuffer;
+    private int[] colors;
     /**
      * Select a file to read data in current directory. 
      */
@@ -70,16 +71,16 @@ public class TCSS458Paint extends JPanel implements KeyListener
         pixels[(height-y-1)*width*3+x*3+2] = b;                
     }
     
-    
     /**
-     * Draw line in horizontal
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
+     * @param x0
+     * @param y0
+     * @param z0
+     * @param x1
+     * @param y1
+     * @param z1
+     * @param red
+     * @param green
+     * @param blue
      */
     public void plotLineLow(int x0, int y0, int x1, int y1, 
     						int red, int green, int blue) {
@@ -103,14 +104,16 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
     
     /**
-     * Draw line in vertical 
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
+     * 
+     * @param x0
+     * @param y0
+     * @param z0
+     * @param x1
+     * @param y1
+     * @param z1
+     * @param red
+     * @param green
+     * @param blue
      */
     public void plotLineHigh(int x0, int y0, int x1, int y1, 
     							int red, int green, int blue) {
@@ -134,16 +137,19 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
     
     /**
-     * Reference at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
+     * 
+     * @param x0
+     * @param y0
+     * @param z0
+     * @param x1
+     * @param y1
+     * @param z1
+     * @param red
+     * @param green
+     * @param blue
      */
-    public void plotLine(int x0, int y0, int x1, int y1, int red, int green, int blue ) {
+    public void plotLine(int x0, int y0, int x1, int y1, 
+    						int red, int green, int blue ) {
     	if (Math.abs(y1 - y0) < Math.abs(x1 - x0)) {
     		if (x0 > x1) {
     			plotLineLow(x1, y1, x0, y0, red, green, blue);
@@ -179,11 +185,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	r = g = b = 0;  
     	
     	// Load Identity Matrix
-    	Matrix tranformationMatrix = new Transformation().LoadIdentityMatrix();    	
+    	Matrix matrix = new Transformation().LoadIdentityMatrix();
     	
         Scanner input = getFile();
         while (input.hasNext()) {
             String command = input.next();
+            colors = new int[3];
+            zBuffer = Double.NEGATIVE_INFINITY;
             if (command.equals("DIM")){
                 width = input.nextInt();
                 height = input.nextInt();
@@ -198,74 +206,80 @@ public class TCSS458Paint extends JPanel implements KeyListener
                 }
             }  else if (command.equals("RGB")) {
                 r = (int) (input.nextDouble() * 255);
-                g = (int) (input.nextDouble() * 255);
+                g = (int) (input.nextDouble() * 255);                
                 b = (int) (input.nextDouble() * 255);
-            } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
-            	tranformationMatrix = new Transformation().LoadIdentityMatrix();
-            } else if (command.equals("SCALE")) {
-            	tranformationMatrix = new Transformation().Scaling(input.nextDouble(), 
-            							input.nextDouble(),	input.nextDouble())
-            								.multiply(tranformationMatrix);
-            } else if (command.equals("ROTATEZ")) {
-            	tranformationMatrix = new Transformation().RotationZ(input.nextDouble())
-            								.multiply(tranformationMatrix);
-            } else if (command.equals("ROTATEY")) {
-            	tranformationMatrix = new Transformation().RotationY(input.nextDouble())
-											.multiply(tranformationMatrix);
-            } else if (command.equals("ROTATEX")) {
-            	tranformationMatrix = new Transformation().RotationX(input.nextDouble())
-											.multiply(tranformationMatrix);
-            } else if (command.equals("TRANSLATE")) {
-            	tranformationMatrix = new Transformation().Translation(input.nextDouble(), 
-            							input.nextDouble(), input.nextDouble())
-            								.multiply(tranformationMatrix);
-            }  else if (command.equals("TRI")) {
-            	Point3D p0 = new Point3D(input.nextDouble(), 
-            								input.nextDouble(), 
-            									input.nextDouble(), 1);
-            	Point3D p1 = new Point3D(input.nextDouble(), 
-            								input.nextDouble(), 
-            									input.nextDouble(), 1);
-            	Point3D p2 = new Point3D(input.nextDouble(), 
-            								input.nextDouble(), 
-            									input.nextDouble(), 1);
-            	
-            	//TransformedVector = TranslationMatrix * RotationMatrix * ScaleMatrix * OriginalVector;
-            	tranformationMatrix = tranformationMatrix.multiply(
-            							new Transformation().paralleProjection());
-            	
+            } else if (command.equals("LINE")){
             	Matrix matrix0 = new Matrix(4,1);
-            	matrix0 = tranformationMatrix.multiply(p0.convertFromPoint3D());
+				matrix0 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
             	
             	Matrix matrix1 = new Matrix(4,1);
-            	matrix1 = tranformationMatrix.multiply(p1.convertFromPoint3D());
-            	
-            	Matrix matrix2 = new Matrix(4,1);
-            	matrix2 = tranformationMatrix.multiply(p2.convertFromPoint3D());
+            	matrix1 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
             	
             	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
             	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
             	
             	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
             	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
+                
+                //Step 1: Draw the edges of a triangle first.
+                plotLine((int)Math.round(x0), (int)Math.round(y0),
+                		(int)Math.round(x1), (int)Math.round(y1), r, g, b);                
+            } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
+            	matrix = new Transformation().LoadIdentityMatrix();
+            } else if (command.equals("SCALE")) {
+            	matrix = new Transformation().Scaling(input.nextDouble(), 
+            							input.nextDouble(),	input.nextDouble())
+            								.multiply(matrix);
+            } else if (command.equals("ROTATEZ")) {
+            	matrix = new Transformation().RotationZ(input.nextDouble())
+            								.multiply(matrix);
+            } else if (command.equals("ROTATEY")) {
+            	matrix = new Transformation().RotationY(input.nextDouble())
+											.multiply(matrix);
+            } else if (command.equals("ROTATEX")) {
+            	matrix = new Transformation().RotationX(input.nextDouble())
+											.multiply(matrix);
+            } else if (command.equals("TRANSLATE")) {
+            	matrix = new Transformation().Translation(input.nextDouble(), 
+            							input.nextDouble(), input.nextDouble())
+            								.multiply(matrix);
+            }  else if (command.equals("TRI")) {            	
+            	Matrix matrix0 = new Matrix(4,1);
+            	matrix0 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
+            	Matrix matrix1 = new Matrix(4,1);
+            	matrix1 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
+            	Matrix matrix2 = new Matrix(4,1);
+            	matrix2 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
+            	
+            	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
+            	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
+            	double z0 = matrix0.getMatrix()[2][0];
+            	double w0 = matrix0.getMatrix()[3][0];
+            	
+            	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
+            	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
+            	double z1 = matrix1.getMatrix()[2][0];
+            	double w1 = matrix0.getMatrix()[3][0];
             	
             	double x2 = convertToScreen(width,matrix2.getMatrix()[0][0]);
             	double y2 = convertToScreen(height, matrix2.getMatrix()[1][0]);
+            	double z2 = matrix2.getMatrix()[2][0];
+            	double w2 = matrix0.getMatrix()[3][0];
             	                
                 //Step 1: Draw the edges of a triangle first.
                 plotLine((int)Math.round(x0), (int)Math.round(y0), 
                 		(int)Math.round(x1), (int)Math.round(y1), r, g, b);
-                plotLine((int)Math.round(x1), (int)Math.round(y1), 
+                plotLine((int)Math.round(x1), (int)Math.round(y1),
                 		(int)Math.round(x2), (int)Math.round(y2), r, g, b);
-                plotLine((int)Math.round(x2), (int)Math.round(y2), 
+                plotLine((int)Math.round(x2), (int)Math.round(y2),
                 		(int)Math.round(x0), (int)Math.round(y0), r, g, b);
                 
                 //Step 2: Use scanline algorithm to fill the triangle.
                 //Add vertexes to ArrayList to array them in x order.
-                ArrayList<Point2D> points = new ArrayList<Point2D>(); 
-                points.add(new Point2D(x0, y0));
-                points.add(new Point2D(x1, y1));
-                points.add(new Point2D(x2, y2));  
+                ArrayList<Point> points = new ArrayList<Point>(); 
+                points.add(new Point(x0, y0, z0, w0));
+                points.add(new Point(x1, y1, z1, w1));
+                points.add(new Point(x2, y2, z2, w2));  
                 
                 //Sorts vertexes based on x
                 Collections.sort(points);
@@ -276,6 +290,29 @@ public class TCSS458Paint extends JPanel implements KeyListener
             }
         }
     }
+	
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param xmin
+	 * @param xmax
+	 * @param p0
+	 * @param p1
+	 * @param p2
+	 * @return
+	 */
+	private double zValue(double x, double y, double xmin, double xmax, 
+										Point p0, Point p1, Point p2) {
+		double za = p2.getZ() - (p2.getZ() - p1.getZ()) 
+						* ((p2.getY() - y) / (p2.getY() - p1.getY()));
+		
+		double zb = p2.getZ() - (p2.getZ() - p0.getZ()) 
+				* ((p2.getY() - y) / (p2.getY() - p0.getY()));
+		
+		return zb - (zb - za) * ((xmax - x)/(xmax - xmin));
+	}
+	
 	
  
     /**
@@ -288,14 +325,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	return (size - 1) * (c + 1)/2;
     }
     
-    /**
-     * Compute the slope of vertex v0 and Vertex v1
-     * @param v0
-     * @param v1
-     * @return
-     */
-    private double slope(Point2D v0, Point2D v1) {
-    	return (v0.getY() - v1.getY())/(v0.getX() - v1.getX());
+    private double slope(double x0, double y0, double x1, double y1) {
+    	return (y0 - y1)/(x0 - x1);
     }
     
     /**
@@ -306,13 +337,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
      * @param y
      * @return an array minx, maxx
      */
-	private void fillTriangle(ArrayList<Point2D> points, int r, int g, int b) {		
+	private void fillTriangle(ArrayList<Point> points, int r, int g, int b) {		
 		//Sort vertices by Y
 		sortByY(points);
 		
-		Point2D p0 = new Point2D();				
-		Point2D p1 = new Point2D();				
-		Point2D p2 = new Point2D();
+		Point p0 = new Point();				
+		Point p1 = new Point();				
+		Point p2 = new Point();
 		
 		p0 = points.get(0);
 		p1 = points.get(1);
@@ -325,11 +356,11 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	
     	for (double y = minY; y < maxY; y++) {
     		if (y < points.get(1).getY()) {
-    			minX = p0.getX() + ((y - p0.getY()) / slope(p0, p1));
-    			maxX = p0.getX() + ((y - p0.getY()) / slope(p0, p2));
+    			minX = p0.getX() + ((y - p0.getY()) / slope(p0.getX(), p0.getY(), p1.getX(), p1.getY()));
+    			maxX = p0.getX() + ((y - p0.getY()) / slope(p0.getX(), p0.getY(), p2.getX(), p2.getY()));
     		} else {
-    			minX = p2.getX() + ((y - p2.getY()) / slope(p2, p1));
-    			maxX = p2.getX() + ((y - p2.getY()) / slope(p2, p0));
+    			minX = p2.getX() + ((y - p2.getY()) / slope(p2.getX(), p2.getY(), p1.getX(), p1.getY()));
+    			maxX = p2.getX() + ((y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY()));
     		}
     		
     		double temp = 0;
@@ -338,10 +369,25 @@ public class TCSS458Paint extends JPanel implements KeyListener
         		minX = maxX;
         		maxX = temp;
         	}
-        	
+        	System.out.println("================================================");
         	for (double x = minX; x < maxX; x++) {
+        		double z = zValue(x, y, minX, maxX, p0, p1, p2);
+        		System.out.println("Z Value: " + z);
+        		System.out.println("Z Buffer: " + zBuffer);
+        		if (z < zBuffer) {
+        			r = colors[0];
+        			g = colors[1];
+        			b = colors[2];
+
+        		} else {
+        			colors[0] = r;
+        			colors[1] = g;
+        			colors[2] = b;
+        			zBuffer = z;
+        		}
         		drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b);
         	}
+        	System.out.println("================================================");
     	}
     }
 	
@@ -349,8 +395,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	 * Sorts vertexes by y.
 	 * @param vertexes
 	 */
-	public void sortByY(ArrayList<Point2D> points) {
-		Point2D point = new Point2D();
+	public void sortByY(ArrayList<Point> points) {
+		Point point = new Point();
 		for (int i = 0; i < points.size() - 1; i++) {
 			for(int j = i + 1; j < points.size(); j++) {
 				if (points.get(i).getY() > points.get(j).getY()) {
@@ -369,36 +415,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
     public static void main(String args[]) {
         JFrame frame = new JFrame("LINE DEMO");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         selectFile();
-
         JPanel rootPane = new TCSS458Paint();    
         getDim(rootPane);
         rootPane.setPreferredSize(new Dimension(width,height));
-        
-        frame.addKeyListener((KeyListener) rootPane);
         frame.getContentPane().add(rootPane);
         frame.pack();      
         frame.setLocationRelativeTo( null );
         frame.setVisible( true );
-
     }
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void keyPressed(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 }

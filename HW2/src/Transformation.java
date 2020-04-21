@@ -1,5 +1,7 @@
-
 public class Transformation {
+	/**
+	 * @return a identity matrix
+	 */
 	public Matrix LoadIdentityMatrix() {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = 1;
@@ -9,6 +11,13 @@ public class Transformation {
 		return new Matrix(matrix);
 	}
 	
+	/**
+	 * translate a point with x, y, z
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @return a translated matrix
+	 */
 	public Matrix Translation(double x, double y, double z) {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = 1;
@@ -21,6 +30,10 @@ public class Transformation {
 		return new Matrix(matrix); 
 	}
 	
+	/**
+	 * @param theta rotate in z axis 
+	 * @return a rotated matrix 
+	 */
 	public Matrix RotationZ(double theta) {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = Math.cos(Math.toRadians(theta));
@@ -32,6 +45,10 @@ public class Transformation {
 		return new Matrix(matrix);
 	}
 	
+	/**
+	 * @param theta rotate in z axis
+	 * @return a rotated matrix
+	 */
 	public Matrix RotationX(double theta) {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = 1;
@@ -43,6 +60,11 @@ public class Transformation {
 		return new Matrix(matrix); 
 	}
 	
+	/**
+	 * 
+	 * @param theta rotate in y axis
+	 * @return a rotated matrix
+	 */
 	public Matrix RotationY(double theta) {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = Math.cos(Math.toRadians(theta));
@@ -54,6 +76,12 @@ public class Transformation {
 		return new Matrix(matrix); 
 	}
 	
+	/**
+	 * @param x
+	 * @param y
+	 * @param z
+	 * return a scaled matrix
+	 */
 	public Matrix Scaling(double x, double y, double z) {
 		double[][] matrix = new double[4][4];
 		matrix[0][0] = x;
@@ -63,64 +91,41 @@ public class Transformation {
 		return new Matrix(matrix); 
 	}
 	
-	public Matrix paralleProjection() {
-		double[][] matrix = new double[4][4];
-		matrix[0][0] = 1;
-		matrix[1][1] = 1;
-		matrix[2][2] = 0;		
-		matrix[3][3] = 1;
-		return new Matrix(matrix);
-	}
-	
-//	/**
-//	 * A parallel projection is one where all the lines that are
-//	 * parallel in 3d space remain when projected.
-//	 * @param p for any point (x, y, z, 1) the parallel projection is to screen coordinated (xp, yp)
-//	 * @return a matrix [xp yp 0 1]^T
-//	 * @throws Exception
-//	 */
-//	public Point perspectiveProjection() {
-//		Matrix matrix = new Matrix(4,4);
-//		matrix.getMatrix()[0][0] = 1;
-//		matrix.getMatrix()[1][1] = 1;
-//		matrix.getMatrix()[2][2] = 0;		
-//		matrix.getMatrix()[3][3] = 1;
-//		
-//		Matrix newMatrix = new Matrix(4, 1);
-//		newMatrix.getMatrix()[0][0] = this.getX();
-//		newMatrix.getMatrix()[1][0] = this.getY();
-//		newMatrix.getMatrix()[2][0] = this.getZ();
-//		newMatrix.getMatrix()[3][0] = this.getW();
-//		
-//		Matrix converted = new Matrix(4, 1);
-//		converted = matrix.multiply(newMatrix);		
-//		return new Point(converted.getMatrix()[0][0], converted.getMatrix()[1][0], 
-//						 converted.getMatrix()[2][0], converted.getMatrix()[3][0]); 
+	// Use these code for next homework
+//	public Matrix paralleProjection() {
+//		double[][] matrix = new double[4][4];
+//		matrix[0][0] = 1;
+//		matrix[1][1] = 1;
+//		matrix[2][2] = 0;		
+//		matrix[3][3] = 1;
+//		return new Matrix(matrix);
 //	}
 //	
-//	/**
-//	 * A parallel projection is one where all the lines that are
-//	 * parallel in 3d space remain when projected.
-//	 * @param p for any point (x, y, z, 1) the parallel projection is to screen coordinated (xp, yp)
-//	 * @return a matrix [xp yp 0 1]^T
-//	 * @throws Exception
-//	 */
-//	public Point obliqueProjection() {
-//		Matrix matrix = new Matrix(4,4);
-//		matrix.getMatrix()[0][0] = 1;
-//		matrix.getMatrix()[1][1] = 1;
-//		matrix.getMatrix()[2][2] = 0;		
-//		matrix.getMatrix()[3][3] = 1;
+//	public Matrix orthogonalProjection(double left, double right, double bottom, 
+//			double top, double near, double far) {
+//		double[][] matrix = new double[4][4];
 //		
-//		Matrix newMatrix = new Matrix(4, 1);
-//		newMatrix.getMatrix()[0][0] = this.getX();
-//		newMatrix.getMatrix()[1][0] = this.getY();
-//		newMatrix.getMatrix()[2][0] = this.getZ();
-//		newMatrix.getMatrix()[3][0] = this.getW();
+//		matrix[0][0] = 2 / (right - left);
+//		matrix[1][1] = 2 / (top - bottom);
+//		matrix[2][2] = -2 / (far - near);
+//		matrix[3][3] = 1;
+//		matrix[0][3] = ((-1) * (right + left)) / (right - left);
+//		matrix[1][3] = ((-1) * (top + bottom)) / (top - bottom);
+//		matrix[2][3] = ((-1) * (far + near)) / (near - far);
+//		return new Matrix(matrix);
+//	}
+//	
+//	public Matrix frustumProjection(double left, double right, double bottom, 
+//										double top, double near, double far) {
+//		double[][] matrix = new double[4][4];
 //		
-//		Matrix converted = new Matrix(4, 1);
-//		converted = matrix.multiply(newMatrix);		
-//		return new Point(converted.getMatrix()[0][0], converted.getMatrix()[1][0], 
-//						 converted.getMatrix()[2][0], converted.getMatrix()[3][0]); 
+//		matrix[0][0] = (2 * near) / (right - left);
+//		matrix[1][1] = (2 * near) / (top - bottom);
+//		matrix[2][2] = -(far + near) / (far - near);
+//		matrix[3][2] = -1;
+//		matrix[0][3] = ((-1)*(near * (right + left))) / (right - left);
+//		matrix[1][3] = ((-1)*(near * (top + bottom))) / (top - bottom);
+//		matrix[2][3] = (2 * far * near) / (near - far);
+//		return new Matrix(matrix);
 //	}
 }

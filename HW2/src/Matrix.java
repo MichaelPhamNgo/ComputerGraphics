@@ -39,7 +39,21 @@ public class Matrix {
 	public Matrix(double[][] matrix) {
 		this.rows = matrix.length;
 		this.columns = matrix[0].length;
+		this.matrix = new double[this.rows][this.columns];
 		this.matrix = matrix;
+	}
+	
+	/**
+	 * @param matrix a 2D matrix
+	 */
+	public Matrix(double x, double y, double z, double w) {
+		this.rows = 4;
+		this.columns = 1;
+		this.matrix = new double[this.rows][this.columns];
+		this.matrix[0][0] = x;
+		this.matrix[1][0] = y;
+		this.matrix[2][0] = z;
+		this.matrix[3][0] = w;
 	}
 	
 	/** 
