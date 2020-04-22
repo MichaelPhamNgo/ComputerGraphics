@@ -19,7 +19,7 @@ public class TCSS458Paint extends JPanel
 	private static int height;
 	private int imageSize; 
 	private int[] pixels;       
-    private double zBuffer;
+    private double[][] zBuffer;
     private int[] colors;
     /**
      * Select a file to read data in current directory. 
@@ -72,97 +72,53 @@ public class TCSS458Paint extends JPanel
     }
     
     /**
-     * @param x0
-     * @param y0
-     * @param z0
-     * @param x1
-     * @param y1
-     * @param z1
-     * @param red
-     * @param green
-     * @param blue
+     * Reference at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+     * @param x0 of Point P0
+     * @param y0 of Point P0
+     * @param x1 of Point P1
+     * @param y1 of Point P1
+     * @param red value of red color
+     * @param green value of green color
+     * @param blue value of green color
      */
-    public void plotLineLow(int x0, int y0, int x1, int y1, 
-    						int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int yi = 1;
-    	if (dy < 0) {
-    		yi = -1;
-    		dy = -dy;    		
-    	}
-    	int D = 2*dy - dx;
-    	int y = y0;
-    	for (int x = x0; x < x1; x++) {
-    		drawPixel(x, y, red, green, blue);
-    		if (D > 0) {
-    			y = y + yi;
-    			D = D - 2 * dx;
-    		}
-    		D = D + 2*dy;
-    	}    	
-    }
-    
-    /**
-     * 
-     * @param x0
-     * @param y0
-     * @param z0
-     * @param x1
-     * @param y1
-     * @param z1
-     * @param red
-     * @param green
-     * @param blue
-     */
-    public void plotLineHigh(int x0, int y0, int x1, int y1, 
-    							int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int xi = 1;
-	    if (dx < 0) {
-	    	xi = -1;
-	        dx = -dx;
-	    }
-	    int D = 2*dx - dy;
-	    int x = x0;
-	    for (int y = y0; y < y1; y++) {
-	    	drawPixel(x, y, red, green, blue);
-	        if (D > 0) {
-	        	x = x + xi;
-	        	D = D - 2*dy;
-	        }
-	        D = D + 2*dx;
-	    }    		        
-    }
-    
-    /**
-     * 
-     * @param x0
-     * @param y0
-     * @param z0
-     * @param x1
-     * @param y1
-     * @param z1
-     * @param red
-     * @param green
-     * @param blue
-     */
-    public void plotLine(int x0, int y0, int x1, int y1, 
-    						int red, int green, int blue ) {
-    	if (Math.abs(y1 - y0) < Math.abs(x1 - x0)) {
-    		if (x0 > x1) {
-    			plotLineLow(x1, y1, x0, y0, red, green, blue);
-    		} else {
-    			plotLineLow(x0, y0, x1, y1, red, green, blue);
-    		}            
-    	} else {
-    		if (y0 > y1) {
-    			plotLineHigh(x1, y1, x0, y0, red, green, blue);
-    		}else {
-    			plotLineHigh(x0, y0, x1, y1, red, green, blue);
-    		}
-    	}
+    public void plotLine(double x0, double y0, double z0, double x1, double y1, 
+    									double z1, int red, int green, int blue ) {
+    	// calculate dx & dy 
+    	double dx = x1 - x0; 
+    	double dy = y1 - y0; 
+    	double dz = z1 - z0;
+      
+        // calculate steps required for generating pixels 
+        double slopeyx = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
+      
+        // calculate increment in x & y for each steps 
+        double xInc = dx / (double) slopeyx; 
+        double yInc = dy / (double) slopeyx; 
+        double zInc = dz / (double) slopeyx;
+     
+        // Put pixel for each step 
+        double x = x0;
+        double y = y0; 
+        double z = z0;
+        for (double i = 0; i <= slopeyx; i++) 
+        { 
+    		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
+    			red = colors[0];
+    			green = colors[1];
+    			blue = colors[2];
+			} else {
+				colors[0] = red;
+				colors[1] = green;
+				colors[2] = blue;        			
+				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
+				System.out.println("(x, y, z) = (" + (int)Math.round(x) + ", " + (int)Math.round(y) + ", " + z + ")");
+			}
+
+        	drawPixel((int)Math.round(x), (int)Math.round(y), red, green, blue); 
+            x += xInc;           // increment in x at each step 
+            y += yInc;           // increment in y at each step 
+            z += zInc;			// increment in y at each step 
+        } 
     }
     
     /**
@@ -189,19 +145,19 @@ public class TCSS458Paint extends JPanel
     	
         Scanner input = getFile();
         while (input.hasNext()) {
-            String command = input.next();
-            colors = new int[3];
-            zBuffer = Double.NEGATIVE_INFINITY;
+            String command = input.next();                        
             if (command.equals("DIM")){
                 width = input.nextInt();
                 height = input.nextInt();
                 imageSize = width * height;
                 pixels = new int[imageSize * 3]; 
-                
+                zBuffer = new double[width][height];
+                colors = new int[3];
                 //Set white background 
                 for (int i = 0; i < width; i++) {
                 	for (int j = 0; j < height; j++) {
                 		drawPixel( i, j, 255, 255, 255);
+                		zBuffer[i][j] = Double.NEGATIVE_INFINITY;
                 	}                	
                 }
             }  else if (command.equals("RGB")) {
@@ -217,13 +173,15 @@ public class TCSS458Paint extends JPanel
             	
             	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
             	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
+            	double z0 = matrix0.getMatrix()[2][0];
             	
             	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
             	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
+            	double z1 = matrix1.getMatrix()[2][0];
                 
                 //Step 1: Draw the edges of a triangle first.
-                plotLine((int)Math.round(x0), (int)Math.round(y0),
-                		(int)Math.round(x1), (int)Math.round(y1), r, g, b);                
+                plotLine((int)Math.round(x0), (int)Math.round(y0), z0,
+                		(int)Math.round(x1), (int)Math.round(y1), z1, r, g, b);                
             } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
             	matrix = new Transformation().LoadIdentityMatrix();
             } else if (command.equals("SCALE")) {
@@ -267,12 +225,12 @@ public class TCSS458Paint extends JPanel
             	double w2 = matrix0.getMatrix()[3][0];
             	                
                 //Step 1: Draw the edges of a triangle first.
-                plotLine((int)Math.round(x0), (int)Math.round(y0), 
-                		(int)Math.round(x1), (int)Math.round(y1), r, g, b);
-                plotLine((int)Math.round(x1), (int)Math.round(y1),
-                		(int)Math.round(x2), (int)Math.round(y2), r, g, b);
-                plotLine((int)Math.round(x2), (int)Math.round(y2),
-                		(int)Math.round(x0), (int)Math.round(y0), r, g, b);
+                plotLine((int)Math.round(x0), (int)Math.round(y0), z0, 
+                		(int)Math.round(x1), (int)Math.round(y1), z1, r, g, b);
+                plotLine((int)Math.round(x1), (int)Math.round(y1), z1,
+                		(int)Math.round(x2), (int)Math.round(y2), z2, r, g, b);
+                plotLine((int)Math.round(x2), (int)Math.round(y2), z2,
+                		(int)Math.round(x0), (int)Math.round(y0), z0, r, g, b);
                 
                 //Step 2: Use scanline algorithm to fill the triangle.
                 //Add vertexes to ArrayList to array them in x order.
@@ -302,17 +260,17 @@ public class TCSS458Paint extends JPanel
 	 * @param p2
 	 * @return
 	 */
-	private double zValue(double x, double y, double xmin, double xmax, 
-										Point p0, Point p1, Point p2) {
-		double za = p2.getZ() - (p2.getZ() - p1.getZ()) 
-						* ((p2.getY() - y) / (p2.getY() - p1.getY()));
-		
-		double zb = p2.getZ() - (p2.getZ() - p0.getZ()) 
-				* ((p2.getY() - y) / (p2.getY() - p0.getY()));
-		
-		return zb - (zb - za) * ((xmax - x)/(xmax - xmin));
-	}
-	
+//	private double zValue(double x, double y, double xmin, double xmax, 
+//										Point p0, Point p1, Point p2) {
+//		double za = p2.getZ() - (p2.getZ() - p1.getZ()) 
+//						* ((p2.getY() - y) / (p2.getY() - p1.getY()));
+//		
+//		double zb = p2.getZ() - (p2.getZ() - p0.getZ()) 
+//				* ((p2.getY() - y) / (p2.getY() - p0.getY()));
+//		
+//		return zb - (zb - za) * ((xmax - x)/(xmax - xmin));
+//	}
+//	
 	
  
     /**
@@ -353,41 +311,56 @@ public class TCSS458Paint extends JPanel
     	double maxY = p2.getY();
     	double minX = 0;
     	double maxX = 0;
+    	double minZ = 0;
+    	double maxZ = 0;
     	
     	for (double y = minY; y < maxY; y++) {
     		if (y < points.get(1).getY()) {
-    			minX = p0.getX() + ((y - p0.getY()) / slope(p0.getX(), p0.getY(), p1.getX(), p1.getY()));
-    			maxX = p0.getX() + ((y - p0.getY()) / slope(p0.getX(), p0.getY(), p2.getX(), p2.getY()));
+    			minX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p1.getX(), p1.getY());
+    			maxX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p2.getX(), p2.getY());
+    			double temp = 0;
+            	if (maxX < minX) {
+            		temp = minX;
+            		minX = maxX;
+            		maxX = temp;
+            	}
+            	minZ = p0.getZ() + (minX - p0.getX()) / slope(p0.getX(), p0.getZ(), p1.getX(), p1.getZ());
+            	maxZ = p0.getZ() + (maxX - p0.getX()) / slope(p0.getX(), p0.getZ(), p2.getX(), p2.getZ());    			
     		} else {
-    			minX = p2.getX() + ((y - p2.getY()) / slope(p2.getX(), p2.getY(), p1.getX(), p1.getY()));
-    			maxX = p2.getX() + ((y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY()));
+    			minX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p1.getX(), p1.getY());
+    			maxX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY());
+    			double temp = 0;
+            	if (maxX < minX) {
+            		temp = minX;
+            		minX = maxX;
+            		maxX = temp;
+            	}
+            	minZ = p2.getZ() + (minX - p2.getX()) / slope(p2.getX(), p2.getZ(), p1.getX(), p1.getZ());
+            	maxZ = p2.getZ() + (maxX - p2.getX()) / slope(p2.getX(), p2.getZ(), p0.getX(), p0.getZ()); 
     		}
     		
-    		double temp = 0;
-        	if (maxX < minX) {
-        		temp = minX;
-        		minX = maxX;
-        		maxX = temp;
-        	}
-        	System.out.println("================================================");
-        	for (double x = minX; x < maxX; x++) {
-        		double z = zValue(x, y, minX, maxX, p0, p1, p2);
-        		System.out.println("Z Value: " + z);
-        		System.out.println("Z Buffer: " + zBuffer);
-        		if (z < zBuffer) {
-        			r = colors[0];
-        			g = colors[1];
-        			b = colors[2];
-
-        		} else {
-        			colors[0] = r;
-        			colors[1] = g;
-        			colors[2] = b;
-        			zBuffer = z;
-        		}
-        		drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b);
-        	}
-        	System.out.println("================================================");
+    		// We have x0 => minX, y0, z0 => minZ, x1 => maxX, y1, z1 => maxZ, 
+    		plotLine(minX, y, minZ, maxX, y, maxZ, r, b, g);
+    		
+    		
+    		
+//    		double dy 
+//        	double dz = (maxZ - minZ) / (maxX - minX);
+//        	for (double x = minX; x < maxX; x++) {      		
+//        		if (dz < zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
+//        			r = colors[0];
+//        			g = colors[1];
+//        			b = colors[2];
+//        		} else {
+//        			colors[0] = r;
+//        			colors[1] = g;
+//        			colors[2] = b;        			
+//        			zBuffer[(int)Math.round(x)][(int)Math.round(y)] = dz;
+//        			System.out.println("(x, y, z) = (" + (int)Math.round(x) + ", " + (int)Math.round(y) + ", " + dz + ")");
+//        		}
+//
+//        		drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b);
+//        	}
     	}
     }
 	

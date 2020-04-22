@@ -70,68 +70,6 @@ public class TCSS458Paint extends JPanel
     
     
     /**
-     * Draw line in horizontal
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
-     */
-    public void plotLineLow(int x0, int y0, int x1, int y1, 
-    						int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int yi = 1;
-    	if (dy < 0) {
-    		yi = -1;
-    		dy = -dy;    		
-    	}
-    	int D = 2*dy - dx;
-    	int y = y0;
-    	for (int x = x0; x < x1; x++) {
-    		drawPixel(x, y, red, green, blue);
-    		if (D > 0) {
-    			y = y + yi;
-    			D = D - 2 * dx;
-    		}
-    		D = D + 2*dy;
-    	}    	
-    }
-    
-    /**
-     * Draw line in vertical 
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
-     */
-    public void plotLineHigh(int x0, int y0, int x1, int y1, 
-    							int red, int green, int blue) {
-    	int dx = x1 - x0;
-    	int dy = y1 - y0;
-    	int xi = 1;
-	    if (dx < 0) {
-	    	xi = -1;
-	        dx = -dx;
-	    }
-	    int D = 2*dx - dy;
-	    int x = x0;
-	    for (int y = y0; y < y1; y++) {
-	    	drawPixel(x, y, red, green, blue);
-	        if (D > 0) {
-	        	x = x + xi;
-	        	D = D - 2*dy;
-	        }
-	        D = D + 2*dx;
-	    }    		        
-    }
-    
-    /**
      * Reference at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
      * @param x0 of Point P0
      * @param y0 of Point P0
@@ -141,20 +79,27 @@ public class TCSS458Paint extends JPanel
      * @param green value of green color
      * @param blue value of green color
      */
-    public void plotLine(int x0, int y0, int x1, int y1, int red, int green, int blue ) {
-    	if (Math.abs(y1 - y0) < Math.abs(x1 - x0)) {
-    		if (x0 > x1) {
-    			plotLineLow(x1, y1, x0, y0, red, green, blue);
-    		} else {
-    			plotLineLow(x0, y0, x1, y1, red, green, blue);
-    		}            
-    	} else {
-    		if (y0 > y1) {
-    			plotLineHigh(x1, y1, x0, y0, red, green, blue);
-    		}else {
-    			plotLineHigh(x0, y0, x1, y1, red, green, blue);
-    		}
-    	}
+    public void plotLine(double x0, double y0, double x1, double y1, int red, int green, int blue ) {
+    	// calculate dx & dy 
+    	double dx = x1 - x0; 
+    	double dy = y1 - y0; 
+      
+        // calculate steps required for generating pixels 
+        double steps = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
+      
+        // calculate increment in x & y for each steps 
+        double Xinc = dx / (double) steps; 
+        double Yinc = dy / (double) steps; 
+      
+        // Put pixel for each step 
+        double X = x0; 
+        double Y = y0; 
+        for (double i = 0; i <= steps; i++) 
+        { 
+        	drawPixel((int)Math.round(X), (int)Math.round(Y), red, green, blue); 
+            X += Xinc;           // increment in x at each step 
+            Y += Yinc;           // increment in y at each step 
+        } 
     }
     
     /**
@@ -195,6 +140,10 @@ public class TCSS458Paint extends JPanel
                 		drawPixel( i, j, 255, 255, 255);
                 	}                	
                 }
+            } else if (command.equals("RGB")) {
+                r = (int) (input.nextDouble() * 255);
+                g = (int) (input.nextDouble() * 255);                
+                b = (int) (input.nextDouble() * 255);
             } else if (command.equals("LINE")){
             	//Convert P0 in read world to screen
             	x0_screen = convertToScreen(width, input.nextDouble());
@@ -205,8 +154,8 @@ public class TCSS458Paint extends JPanel
                 y1_screen = convertToScreen(height, input.nextDouble());
                 
                 //Draws a line with Bresenham's algorithm
-                plotLine((int)Math.round(x0_screen), (int)Math.round(y0_screen), 
-                		(int)Math.round(x1_screen), (int)Math.round(y1_screen), r, g, b);
+                plotLine(x0_screen, y0_screen, 
+                		x1_screen,y1_screen, r, g, b);
             }  else if (command.equals("TRI")) {
             	//Convert P0 in read world to screen
             	x0_screen = convertToScreen(width, input.nextDouble());
@@ -221,12 +170,12 @@ public class TCSS458Paint extends JPanel
                 y2_screen = convertToScreen(height, input.nextDouble()); 
                 
                 //Step 1: Draw the edges of a triangle first.
-                plotLine((int)Math.round(x0_screen), (int)Math.round(y0_screen), 
-                		(int)Math.round(x1_screen), (int)Math.round(y1_screen), r, g, b);
-                plotLine((int)Math.round(x1_screen), (int)Math.round(y1_screen), 
-                		(int)Math.round(x2_screen), (int)Math.round(y2_screen), r, g, b);
-                plotLine((int)Math.round(x2_screen), (int)Math.round(y2_screen), 
-                		(int)Math.round(x0_screen), (int)Math.round(y0_screen), r, g, b);
+                plotLine(x0_screen, y0_screen, 
+                		x1_screen, y1_screen, r, g, b);
+                plotLine(x1_screen, y1_screen, 
+                		x2_screen, y2_screen, r, g, b);
+                plotLine(x2_screen, y2_screen, 
+                		x0_screen, y0_screen, r, g, b);
                 
                 //Step 2: Use scanline algorithm to fill the triangle.
                 //Add vertexes to ArrayList to array them in x order.
