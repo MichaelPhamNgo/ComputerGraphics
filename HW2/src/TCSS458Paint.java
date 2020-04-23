@@ -302,9 +302,6 @@ public class TCSS458Paint extends JPanel
     	double maxY = p2.getY();
     	double minX = 0;
     	double maxX = 0;
-    	double minZ = 0;
-    	double maxZ = 0;
-    	
     	
     	int r = 0;
     	int g = 0;
@@ -314,14 +311,10 @@ public class TCSS458Paint extends JPanel
     	for (double y = minY; y < maxY; y++) {
     		if (y < points.get(1).getY()) {
     			minX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p1.getX(), p1.getY());
-    			minZ = p0.getZ() + (y - p0.getY()) / slope(p0.getZ(), p0.getY(), p1.getZ(), p1.getY());
     			maxX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p2.getX(), p2.getY());
-    			maxZ = p0.getZ() + (y - p0.getY()) / slope(p0.getZ(), p0.getY(), p2.getZ(), p2.getY());
     		} else {
     			minX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p1.getX(), p1.getY());
-    			minZ = p2.getX() + (y - p2.getY()) / slope(p2.getZ(), p2.getY(), p1.getZ(), p1.getY());
-    			maxX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY());
-    			maxZ = p2.getX() + (y - p2.getY()) / slope(p2.getZ(), p2.getY(), p0.getZ(), p0.getY());
+     			maxX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY());
     		}    		
     		
     		double temp = 0;
@@ -331,17 +324,8 @@ public class TCSS458Paint extends JPanel
         		maxX = temp;
         	}
         	
-
-        	if (maxZ < minZ) {
-        		temp = minZ;
-        		minZ = maxZ;
-        		maxZ = temp;
-        	}
-        	
-        	double dz = maxZ - minZ;
-        	double z = p0.getZ();
-        	
         	for (double x = minX; x < maxX; x++) {
+        		double z = zValue(p0, p1, p2, x, y);
         		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
         			int[] color = new int[3];
         			color = colors.get((int)Math.round(x) +","+ (int)Math.round(y));
@@ -362,10 +346,20 @@ public class TCSS458Paint extends JPanel
         			colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
         		}
         		drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b);
-        		z += dz;
         	}
     	}
     }
+	
+	private double zValue(Point p0, Point p1, Point p2, double x, double y) {
+		double[] crossProduct = new double[3];
+		
+		crossProduct[0] = (p1.getY() - p0.getY()) * (p2.getZ() - p0.getZ()) - (p2.getY() - p0.getY()) * (p1.getZ() - p0.getZ());
+		crossProduct[1] = (p1.getZ() - p0.getZ()) * (p2.getX() - p0.getX()) - (p1.getX() - p0.getX()) * (p2.getZ() - p0.getZ());
+		crossProduct[2] = (p1.getX() - p0.getX()) * (p2.getY() - p0.getY()) - (p2.getX() - p0.getX()) * (p1.getY() - p0.getY());
+		
+		
+		return p0.getZ() - (crossProduct[0] * (x - p0.getX()) + crossProduct[1] * (y - p0.getY())) / crossProduct[2];
+	}
 	
 	/**
 	 * Sorts vertexes by y.

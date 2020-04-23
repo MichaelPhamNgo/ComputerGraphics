@@ -90,42 +90,4 @@ public class Transformation {
 		matrix[3][3] = 1;
 		return new Matrix(matrix); 
 	}
-	
-	// Use these code for next homework
-//	public Matrix paralleProjection() {
-//		double[][] matrix = new double[4][4];
-//		matrix[0][0] = 1;
-//		matrix[1][1] = 1;
-//		matrix[2][2] = 0;		
-//		matrix[3][3] = 1;
-//		return new Matrix(matrix);
-//	}
-//	
-//	public Matrix orthogonalProjection(double left, double right, double bottom, 
-//			double top, double near, double far) {
-//		double[][] matrix = new double[4][4];
-//		
-//		matrix[0][0] = 2 / (right - left);
-//		matrix[1][1] = 2 / (top - bottom);
-//		matrix[2][2] = -2 / (far - near);
-//		matrix[3][3] = 1;
-//		matrix[0][3] = ((-1) * (right + left)) / (right - left);
-//		matrix[1][3] = ((-1) * (top + bottom)) / (top - bottom);
-//		matrix[2][3] = ((-1) * (far + near)) / (near - far);
-//		return new Matrix(matrix);
-//	}
-//	
-//	public Matrix frustumProjection(double left, double right, double bottom, 
-//										double top, double near, double far) {
-//		double[][] matrix = new double[4][4];
-//		
-//		matrix[0][0] = (2 * near) / (right - left);
-//		matrix[1][1] = (2 * near) / (top - bottom);
-//		matrix[2][2] = -(far + near) / (far - near);
-//		matrix[3][2] = -1;
-//		matrix[0][3] = ((-1)*(near * (right + left))) / (right - left);
-//		matrix[1][3] = ((-1)*(near * (top + bottom))) / (top - bottom);
-//		matrix[2][3] = (2 * far * near) / (near - far);
-//		return new Matrix(matrix);
-//	}
 }
