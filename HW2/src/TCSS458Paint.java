@@ -81,18 +81,15 @@ public class TCSS458Paint extends JPanel
      * @param green value of green color
      * @param blue value of green color
      */
-    public void plotLine(double x0, double y0, double z0, double x1, double y1, 
-    									double z1, int red, int green, int blue ) {
+    public void plotLine(double[] p1, double[] p2, int red, int green, int blue ) {
     	// calculate dx & dy 
-    	double dx = x1 - x0; 
-    	double dy = y1 - y0; 
-    	double dz = z1 - z0;
-    	
     	int r = 0;
     	int g = 0;
     	int b = 0;
+    	double dx = p2[0] - p1[0]; 
+    	double dy = p2[1] - p1[1]; 
+    	double dz = p2[2] - p1[2];
     	
-      
         // calculate steps required for generating pixels 
         double slopeyx = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
       
@@ -102,9 +99,9 @@ public class TCSS458Paint extends JPanel
         double zInc = dz / (double) slopeyx;
      
         // Put pixel for each step 
-        double x = x0;
-        double y = y0; 
-        double z = z0;
+        double x = p1[0];
+        double y = p1[1]; 
+        double z = p1[2];
         for (double i = 0; i <= slopeyx; i++) 
         { 
     		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
@@ -117,7 +114,8 @@ public class TCSS458Paint extends JPanel
 				int[] color = new int[3];
 				color[0] = red;
 				color[1] = green;
-				color[2] = blue;r = red;
+				color[2] = blue;
+				r = red;
 				g = green;
 				b = blue;
 				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
@@ -176,22 +174,15 @@ public class TCSS458Paint extends JPanel
                 g = (int) (input.nextDouble() * 255);                
                 b = (int) (input.nextDouble() * 255);
             } else if (command.equals("LINE")){
-            	Matrix matrix0 = new Matrix(4,1);
-				matrix0 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
-            	
-            	Matrix matrix1 = new Matrix(4,1);
-            	matrix1 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
-            	
-            	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
-            	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
-            	double z0 = matrix0.getMatrix()[2][0];
-            	
-            	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
-            	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
-            	double z1 = matrix1.getMatrix()[2][0];
-                
-                //Step 1: Draw the edges of a triangle first.
-                plotLine(x0, y0, z0, x1, y1, z1, r, g, b);                
+            	double[] m1 = pointToMatrix(matrix, width, height, 
+            										input.nextDouble(), 
+            										input.nextDouble(), 
+            										input.nextDouble());
+            	double[] m2 = pointToMatrix(matrix, width, height, 
+            										input.nextDouble(), 
+            										input.nextDouble(), 
+            										input.nextDouble());
+                plotLine(m1, m2, r, g, b);                
             } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
             	matrix = new Transformation().LoadIdentityMatrix();
             } else if (command.equals("SCALE")) {
@@ -211,50 +202,94 @@ public class TCSS458Paint extends JPanel
             	matrix = new Transformation().Translation(input.nextDouble(), 
             							input.nextDouble(), input.nextDouble())
             								.multiply(matrix);
-            }  else if (command.equals("TRI")) {    
-            	Matrix matrix0 = new Matrix(4,1);
-            	matrix0 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
-            	Matrix matrix1 = new Matrix(4,1);
-            	matrix1 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
-            	Matrix matrix2 = new Matrix(4,1);
-            	matrix2 = matrix.multiply(new Matrix(input.nextDouble(), input.nextDouble(), input.nextDouble(), 1));
+            } else if (command.equals("SOLID_CUBE")) {
             	
-            	double x0 = convertToScreen(width,matrix0.getMatrix()[0][0]);
-            	double y0 = convertToScreen(height, matrix0.getMatrix()[1][0]);
-            	double z0 = matrix0.getMatrix()[2][0];
-            	double w0 = matrix0.getMatrix()[3][0];
-            	
-            	double x1 = convertToScreen(width,matrix1.getMatrix()[0][0]);
-            	double y1 = convertToScreen(height, matrix1.getMatrix()[1][0]);
-            	double z1 = matrix1.getMatrix()[2][0];
-            	double w1 = matrix0.getMatrix()[3][0];
-            	
-            	double x2 = convertToScreen(width,matrix2.getMatrix()[0][0]);
-            	double y2 = convertToScreen(height, matrix2.getMatrix()[1][0]);
-            	double z2 = matrix2.getMatrix()[2][0];
-            	double w2 = matrix0.getMatrix()[3][0];
-            	                
-                //Step 1: Draw the edges of a triangle first.
-                plotLine(x0, y0, z0, x1, y1, z1, r, g, b);
-                plotLine(x1, y1, z1, x2, y2, z2, r, g, b);
-                plotLine(x2, y2, z2, x0, y0, z0, r, g, b);
-                
-                //Step 2: Use scanline algorithm to fill the triangle.
-                //Add vertexes to ArrayList to array them in x order.
-                ArrayList<Point> points = new ArrayList<Point>(); 
-                points.add(new Point(x0, y0, z0, w0));
-                points.add(new Point(x1, y1, z1, w1));
-                points.add(new Point(x2, y2, z2, w2));  
-                
-                //Sorts vertexes based on x
-                Collections.sort(points);
-                
-                //Draw a triangle
-                fillTriangle(points, r, g, b);
-
+            } else if (command.equals("WIREFRAME_CUBE")) {
+            	drawWireFrameCube(matrix, r, g, b);
+            } else if (command.equals("TRI")) { 
+            	double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+            	double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+            	double[] p3 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+            	drawTriangle(matrix, p1, p2, p3, r, g, b);
             }
         }
     }
+	
+	private void drawTriangle(Matrix matrix, double[] p1, double[] p2, double[] p3, int r, int g, int b) {
+		double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
+		double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
+		double[] m3 = pointToMatrix(matrix, width, height, p3[0], p3[1], p3[2]);
+		
+		//Step 1: Draw the edges of a triangle first.
+		plotLine(m1, m2, r, g, b);
+		plotLine(m2, m3, r, g, b);
+		plotLine(m3, m1, r, g, b);
+		
+		//Step 2: Use scanline algorithm to fill the triangle.
+		//Add vertexes to ArrayList to array them in x order.
+		ArrayList<Point> points = new ArrayList<Point>(); 
+		points.add(new Point(m1[0], m1[1], m1[2], m1[3]));
+		points.add(new Point(m2[0], m2[1], m2[2], m2[3]));
+		points.add(new Point(m3[0], m3[1], m3[2], m3[3]));  
+		
+		//Sorts vertexes based on x
+		Collections.sort(points);
+		
+		//Draw a triangle
+		fillTriangle(points, r, g, b);
+	}
+	
+	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
+		double[] p1 = new double[] {-1,-1,-1};
+		double[] p2 = new double[] {1,-1,-1};
+		double[] p3 = new double[] {-1,1,-1};
+		double[] p4 = new double[] {1,1,-1};
+		double[] p5 = new double[] {-1,-1,1};
+		double[] p6 = new double[] {1,-1,1};
+		double[] p7 = new double[] {-1,1,1};
+		double[] p8 = new double[] {1,1,1};
+		
+//		drawTriangle(matrix, p1, p5, p7, r, g, b);
+//		drawTriangle(matrix, p1, p3, p7, r, g, b);
+		
+//		drawTriangle(matrix, p1, p5, p6, r, g, b);
+//		drawTriangle(matrix, p1, p2, p6, r, g, b);
+//		
+//		drawTriangle(matrix, p3, p7, p8, r, g, b);
+//		drawTriangle(matrix, p3, p4, p8, r, g, b);
+//				
+//		drawTriangle(matrix, p5, p6, p7, r, g, b);
+//		drawTriangle(matrix, p6, p7, p8, r, g, b);
+//				
+//		drawTriangle(matrix, p1, p2, p3, r, g, b);
+//		drawTriangle(matrix, p2, p3, p4, r, g, b);
+//		
+//		drawTriangle(matrix, p2, p6, p8, r, g, b);
+//		drawTriangle(matrix, p2, p4, p8, r, g, b);
+	}
+	
+	/**
+	 * 
+	 * @param matrix
+	 * @param width
+	 * @param height
+	 * @param v1
+	 * @param v2
+	 * @param v3
+	 * @return
+	 */
+	private double[] pointToMatrix(Matrix matrix, int width, int height, 
+											double v1, double v2, double v3) {
+		double[] data = new double[4];
+		Matrix matrix0 = new Matrix(4,1);
+    	matrix0 = matrix.multiply(new Matrix(v1, v2, v3, 1));
+    	data[0] = convertToScreen(width,matrix0.getMatrix()[0][0]);
+    	data[1] = convertToScreen(height, matrix0.getMatrix()[1][0]);
+    	data[2] = matrix0.getMatrix()[2][0];
+    	data[3] = matrix0.getMatrix()[3][0];
+    	return data;
+    	
+	}
  
     /**
      * Convert x or y in world to x or y in screen
@@ -287,26 +322,23 @@ public class TCSS458Paint extends JPanel
      * @return an array minx, maxx
      */
 	private void fillTriangle(ArrayList<Point> points, int red, int green, int blue ) {		
-		//Sort vertices by Y
-		sortByY(points);
-		
-		Point p0 = new Point();				
+		int r = 0;
+    	int g = 0;
+    	int b = 0;
+    	double minX = 0;
+    	double maxX = 0;
+    	Point p0 = new Point();				
 		Point p1 = new Point();				
 		Point p2 = new Point();
-		
+    	
+    	//Sort vertices by Y
+		sortByY(points);
 		p0 = points.get(0);
 		p1 = points.get(1);
 		p2 = points.get(2);
     	
     	double minY = p0.getY();
     	double maxY = p2.getY();
-    	double minX = 0;
-    	double maxX = 0;
-    	
-    	int r = 0;
-    	int g = 0;
-    	int b = 0;
-    	
     	
     	for (double y = minY; y < maxY; y++) {
     		if (y < points.get(1).getY()) {
@@ -350,14 +382,20 @@ public class TCSS458Paint extends JPanel
     	}
     }
 	
+	/**
+	 * 
+	 * @param p0
+	 * @param p1
+	 * @param p2
+	 * @param x
+	 * @param y
+	 * @return
+	 */
 	private double zValue(Point p0, Point p1, Point p2, double x, double y) {
 		double[] crossProduct = new double[3];
-		
 		crossProduct[0] = (p1.getY() - p0.getY()) * (p2.getZ() - p0.getZ()) - (p2.getY() - p0.getY()) * (p1.getZ() - p0.getZ());
 		crossProduct[1] = (p1.getZ() - p0.getZ()) * (p2.getX() - p0.getX()) - (p1.getX() - p0.getX()) * (p2.getZ() - p0.getZ());
 		crossProduct[2] = (p1.getX() - p0.getX()) * (p2.getY() - p0.getY()) - (p2.getX() - p0.getX()) * (p1.getY() - p0.getY());
-		
-		
 		return p0.getZ() - (crossProduct[0] * (x - p0.getX()) + crossProduct[1] * (y - p0.getY())) / crossProduct[2];
 	}
 	
