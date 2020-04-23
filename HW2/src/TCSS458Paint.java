@@ -117,17 +117,11 @@ public class TCSS458Paint extends JPanel
 				int[] color = new int[3];
 				color[0] = red;
 				color[1] = green;
-				color[2] = blue;
-				
-				System.out.println((int)Math.round(x) +","+ (int)Math.round(y) + ", " + Arrays.toString(color));
-				colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
-				
-				
-				r = red;
+				color[2] = blue;r = red;
 				g = green;
 				b = blue;
 				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
-				System.out.println("(x, y, z) = (" + (int)Math.round(x) + ", " + (int)Math.round(y) + ", " + z + ")");
+				colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
 			
 			}
 
