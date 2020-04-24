@@ -11,7 +11,7 @@ import java.util.*;
  * Homework 2: Draw graphs in 3D
  * Due: April 24, 2020
  */
-public class TCSS458Paint extends JPanel
+public class TCSS458Paint extends JPanel implements KeyListener 
 {
 	private static final long serialVersionUID = -6972067082022136019L;
 	private static File selectedFile = null;
@@ -457,6 +457,7 @@ public class TCSS458Paint extends JPanel
         JPanel rootPane = new TCSS458Paint();    
         getDim(rootPane);
         rootPane.setPreferredSize(new Dimension(width,height));
+        frame.addKeyListener((KeyListener) rootPane);
         frame.getContentPane().add(rootPane);
         frame.pack();      
         frame.setLocationRelativeTo( null );
@@ -522,4 +523,37 @@ public class TCSS458Paint extends JPanel
     	}
     }
 
+	@Override
+	public void keyPressed(KeyEvent e) {
+		int keyCode = e.getKeyCode();
+	    switch( keyCode ) { 
+	        case KeyEvent.VK_UP:
+	            System.out.println("Key up");
+	            break;
+	        case KeyEvent.VK_DOWN:
+	            System.out.println("Key down");
+	            // handle down 
+	            break;
+	        case KeyEvent.VK_LEFT:
+	            System.out.println("Key left");
+	            // handle left
+	            break;
+	        case KeyEvent.VK_RIGHT :
+	            System.out.println("Key right");
+	            // handle right
+	            break;
+	     }
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 }
