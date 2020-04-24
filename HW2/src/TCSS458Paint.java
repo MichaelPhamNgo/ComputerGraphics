@@ -81,14 +81,17 @@ public class TCSS458Paint extends JPanel
      * @param green value of green color
      * @param blue value of green color
      */
-    public void plotLine(double[] p1, double[] p2, int red, int green, int blue ) {
+    public void plotLine(Matrix matrix, double[] p1, double[] p2, int red, int green, int blue ) {
+    	double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
+		double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
+    	
     	// calculate dx & dy 
     	int r = 0;
     	int g = 0;
     	int b = 0;
-    	double dx = p2[0] - p1[0]; 
-    	double dy = p2[1] - p1[1]; 
-    	double dz = p2[2] - p1[2];
+    	double dx = m2[0] - m1[0]; 
+    	double dy = m2[1] - m1[1]; 
+    	double dz = m2[2] - m1[2];
     	
         // calculate steps required for generating pixels 
         double slopeyx = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
@@ -99,9 +102,9 @@ public class TCSS458Paint extends JPanel
         double zInc = dz / (double) slopeyx;
      
         // Put pixel for each step 
-        double x = p1[0];
-        double y = p1[1]; 
-        double z = p1[2];
+        double x = m1[0];
+        double y = m1[1]; 
+        double z = m1[2];
         for (double i = 0; i <= slopeyx; i++) 
         { 
     		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
@@ -174,15 +177,9 @@ public class TCSS458Paint extends JPanel
                 g = (int) (input.nextDouble() * 255);                
                 b = (int) (input.nextDouble() * 255);
             } else if (command.equals("LINE")){
-            	double[] m1 = pointToMatrix(matrix, width, height, 
-            										input.nextDouble(), 
-            										input.nextDouble(), 
-            										input.nextDouble());
-            	double[] m2 = pointToMatrix(matrix, width, height, 
-            										input.nextDouble(), 
-            										input.nextDouble(), 
-            										input.nextDouble());
-                plotLine(m1, m2, r, g, b);                
+            	double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+            	double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+                plotLine(matrix , p1, p2, r, g, b);                
             } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
             	matrix = new Transformation().LoadIdentityMatrix();
             } else if (command.equals("SCALE")) {
@@ -203,7 +200,7 @@ public class TCSS458Paint extends JPanel
             							input.nextDouble(), input.nextDouble())
             								.multiply(matrix);
             } else if (command.equals("SOLID_CUBE")) {
-            	
+            	drawSolidCube(matrix, r, g, b);
             } else if (command.equals("WIREFRAME_CUBE")) {
             	drawWireFrameCube(matrix, r, g, b);
             } else if (command.equals("TRI")) { 
@@ -216,14 +213,14 @@ public class TCSS458Paint extends JPanel
     }
 	
 	private void drawTriangle(Matrix matrix, double[] p1, double[] p2, double[] p3, int r, int g, int b) {
+		//Step 1: Draw the edges of a triangle first.
+		plotLine(matrix, p1, p2, r, g, b);
+		plotLine(matrix, p2, p3, r, g, b);
+		plotLine(matrix, p3, p1, r, g, b);
+		
 		double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
 		double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
 		double[] m3 = pointToMatrix(matrix, width, height, p3[0], p3[1], p3[2]);
-		
-		//Step 1: Draw the edges of a triangle first.
-		plotLine(m1, m2, r, g, b);
-		plotLine(m2, m3, r, g, b);
-		plotLine(m3, m1, r, g, b);
 		
 		//Step 2: Use scanline algorithm to fill the triangle.
 		//Add vertexes to ArrayList to array them in x order.
@@ -239,6 +236,39 @@ public class TCSS458Paint extends JPanel
 		fillTriangle(points, r, g, b);
 	}
 	
+	private void drawSolidCube(Matrix matrix, int r, int g, int b) {
+		double[] p1 = new double[] {-0.5,-0.5,-0.5};
+		double[] p2 = new double[] {0.5,-0.5,-0.5};
+		double[] p3 = new double[] {-0.5,0.5,-0.5};
+		double[] p4 = new double[] {0.5,0.5,-0.5};
+		double[] p5 = new double[] {-0.5,-0.5,0.5};
+		double[] p6 = new double[] {0.5,-0.5,0.5};
+		double[] p7 = new double[] {-0.5,0.5,0.5};
+		double[] p8 = new double[] {0.5,0.5,0.5};
+		
+		plotLine(matrix, p1, p3, r, g, b);
+		plotLine(matrix, p1, p5, r, g, b);
+		plotLine(matrix, p3, p7, r, g, b);
+		plotLine(matrix, p5, p7, r, g, b);
+				
+		plotLine(matrix, p1, p2, r, g, b);
+		plotLine(matrix, p2, p6, r, g, b);
+		plotLine(matrix, p5, p6, r, g, b);
+		plotLine(matrix, p7, p8, r, g, b);
+				
+		plotLine(matrix, p3, p4, r, g, b);
+		plotLine(matrix, p4, p8, r, g, b);
+		plotLine(matrix, p6, p8, r, g, b);
+		plotLine(matrix, p2, p4, r, g, b);
+	}
+	
+	/**
+	 * 
+	 * @param matrix
+	 * @param r
+	 * @param g
+	 * @param b
+	 */
 	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
 		double[] p1 = new double[] {-0.5,-0.5,-0.5};
 		double[] p2 = new double[] {0.5,-0.5,-0.5};
