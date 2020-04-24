@@ -165,12 +165,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	int r, g, b;
     	r = g = b = 0;  
     	Scanner input = getFile();    	
-    	Matrix matrix = new Transformation().LoadIdentityMatrix();
-    	Matrix translateMatrix = new Transformation().LoadIdentityMatrix();
-    	Matrix rotateXMatrix = new Transformation().LoadIdentityMatrix();
-    	Matrix rotateYMatrix = new Transformation().LoadIdentityMatrix();
-    	Matrix rotateZMatrix = new Transformation().LoadIdentityMatrix();
-    	Matrix scaleMatrix = new Transformation().LoadIdentityMatrix();
+    	Matrix matrix = new Transformation().LoadIdentityMatrix();  
     	int rotateAX = 0;
     	int rotateAY = 0;
         while (input.hasNext()) {         	
@@ -209,66 +204,67 @@ public class TCSS458Paint extends JPanel implements KeyListener
             										input.nextDouble()};            	
             	// Draw a line through two points with a transformation matrix and its color 
                 plotLine(matrix , p1, p2, r, g, b);                
-            } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
-            	matrix = new Transformation().LoadIdentityMatrix();
-            	translateMatrix = new Transformation().LoadIdentityMatrix();
-            	rotateXMatrix = new Transformation().LoadIdentityMatrix();
-            	rotateYMatrix = new Transformation().LoadIdentityMatrix();
-            	rotateZMatrix = new Transformation().LoadIdentityMatrix();
-            	scaleMatrix = new Transformation().LoadIdentityMatrix();
+            } else if (command.equals("LOAD_IDENTITY_MATRIX")) { // load identity matrix
+            	matrix = new Transformation().LoadIdentityMatrix();	
             	rotateAX = 0;
             	rotateAY = 0;
             } else if (command.equals("SCALE")) { // scale an object
-            	scaleMatrix = new Transformation().Scaling(input.nextDouble(),input.nextDouble(), input.nextDouble());
+            	matrix = new Transformation().Scaling(input.nextDouble(), 
+							input.nextDouble(),	input.nextDouble()).multiply(matrix);
             } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis  
-            	rotateZMatrix = new Transformation().RotationZ(input.nextDouble());
+            	matrix = new Transformation().RotationZ(input.nextDouble()).multiply(matrix);
             } else if (command.equals("ROTATEY")) { // rotate an object via y axis
             	if (keyCode == 0) {
             		rotateY = input.nextDouble();
             	}
             	rotateAY = 1;
-            	rotateYMatrix = new Transformation().RotationY(rotateY);
+            	matrix = new Transformation().RotationY(rotateY).multiply(matrix);
             } else if (command.equals("ROTATEX")) { // rotate an object via x axis
             	if (keyCode == 0) {
             		rotateX = input.nextDouble();
             	}
             	rotateAX = 1;
-            	rotateXMatrix = new Transformation().RotationX(rotateX);
+            	matrix = new Transformation().RotationX(rotateX).multiply(matrix);
             } else if (command.equals("TRANSLATE")) {
-            	translateMatrix = new Transformation().Translation(input.nextDouble(), input.nextDouble(), input.nextDouble());
-            } else if (command.equals("SOLID_CUBE")) {
-            	if (rotateAX == 0) {
-                	rotateYMatrix = new Transformation().RotationY(rotateY);
-                } 
+            	matrix = new Transformation().Translation(input.nextDouble(), 
+            							input.nextDouble(), input.nextDouble())
+            								.multiply(matrix);
+            } else if (command.equals("SOLID_CUBE")) {            	 
             	if (rotateAY == 0) {
-                	rotateXMatrix = new Transformation().RotationX(rotateX);
+            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
+                	matrix =  rotateYMatrix.multiply(matrix);
                 }
-            	Matrix matrix1 = translateMatrix.multiply(rotateXMatrix.multiply(rotateYMatrix).multiply(rotateZMatrix).multiply(scaleMatrix).multiply(matrix));
-            	drawSolidCube(matrix1, r, g, b);
-            } else if (command.equals("WIREFRAME_CUBE")) {
             	if (rotateAX == 0) {
-                	rotateYMatrix = new Transformation().RotationY(rotateY);
-                } 
-            	if (rotateAY == 0) {
-                	rotateXMatrix = new Transformation().RotationX(rotateX);
+                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
+                	matrix = rotateXMatrix.multiply(matrix);
                 }
-            	Matrix matrix1 = translateMatrix.multiply(rotateXMatrix.multiply(rotateYMatrix).multiply(rotateZMatrix).multiply(scaleMatrix).multiply(matrix));
-            	drawWireFrameCube(matrix1, r, g, b);
+            	drawSolidCube(matrix, r, g, b);
+            } else if (command.equals("WIREFRAME_CUBE")) {            	 
+            	if (rotateAY == 0) {
+            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
+                	matrix =  rotateYMatrix.multiply(matrix);
+                }
+            	if (rotateAX == 0) {
+                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
+                	matrix = rotateXMatrix.multiply(matrix);
+                }
+            	drawWireFrameCube(matrix, r, g, b);
             } else if (command.equals("TRI")) { 
-            	if (rotateAX == 0) {
-                	rotateYMatrix = new Transformation().RotationY(rotateY);
-                } 
             	if (rotateAY == 0) {
-                	rotateXMatrix = new Transformation().RotationX(rotateX);
+            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
+                	matrix =  rotateYMatrix.multiply(matrix);
+                	rotateAY = 1;
                 }
-            	Matrix matrix1 = translateMatrix.multiply(rotateXMatrix.multiply(rotateYMatrix).multiply(rotateZMatrix).multiply(scaleMatrix).multiply(matrix));
+            	if (rotateAX == 0) {
+                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
+                	matrix = rotateXMatrix.multiply(matrix);
+                	rotateAX = 1;
+                }
             	double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
             	double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
             	double[] p3 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
-            	drawTriangle(matrix1, p1, p2, p3, r, g, b);
+            	drawTriangle(matrix, p1, p2, p3, r, g, b);
             }
-            
-            
         }
     }
 	
