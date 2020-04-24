@@ -15,10 +15,16 @@ public class TCSS458Paint extends JPanel implements KeyListener
 {
 	private static final long serialVersionUID = -6972067082022136019L;
 	private static File selectedFile = null;
+	private static int rotationValue = 3;
 	private static int width;
 	private static int height;
+	private double rotateX = 0;
+	private double rotateY = 0;
+	private double rotateZ = 0; 
+	private int keyCode = 0;
 	private int imageSize; 
 	private int[] pixels; 
+	
 	
 	// 2D Array containing z value after computing 
     private double[][] zBuffer;
@@ -159,13 +165,10 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	// RGB color
     	int r, g, b;
     	r = g = b = 0;  
-    	
-    	// Setup Identity Matrix to ready
-    	Matrix matrix = new Transformation().LoadIdentityMatrix();
-    	
-        Scanner input = getFile();
-        while (input.hasNext()) {
-            String command = input.next();                        
+    	Scanner input = getFile();    	
+    	Matrix matrix = new Transformation().LoadIdentityMatrix();        
+        while (input.hasNext()) {         	
+            String command = input.next();
             if (command.equals("DIM")){
                 width = input.nextInt();
                 height = input.nextInt();
@@ -205,13 +208,21 @@ public class TCSS458Paint extends JPanel implements KeyListener
             } else if (command.equals("SCALE")) { // scale an object
             	matrix = new Transformation().Scaling(input.nextDouble(), 
 							input.nextDouble(),	input.nextDouble()).multiply(matrix);
-            } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis
-            	matrix = new Transformation().RotationZ(input.nextDouble()).multiply(matrix);
+            } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis  
+            	if (keyCode == 0) {
+            		rotateZ = input.nextDouble();
+            	}
+            	matrix = new Transformation().RotationZ(rotateZ).multiply(matrix);
             } else if (command.equals("ROTATEY")) { // rotate an object via y axis
-            	matrix = new Transformation().RotationY(input.nextDouble()).multiply(matrix);
+            	if (keyCode == 0) {
+            		rotateY = input.nextDouble();
+            	}
+            	matrix = new Transformation().RotationY(rotateY).multiply(matrix);
             } else if (command.equals("ROTATEX")) { // rotate an object via x axis
-            	matrix = new Transformation().RotationX(input.nextDouble())
-											.multiply(matrix);
+            	if (keyCode == 0) {
+            		rotateX = input.nextDouble();
+            	}
+            	matrix = new Transformation().RotationX(rotateX).multiply(matrix);
             } else if (command.equals("TRANSLATE")) {
             	matrix = new Transformation().Translation(input.nextDouble(), 
             							input.nextDouble(), input.nextDouble())
@@ -536,22 +547,23 @@ public class TCSS458Paint extends JPanel implements KeyListener
 
 	@Override
 	public void keyPressed(KeyEvent e) {
-		int keyCode = e.getKeyCode();
+		keyCode = e.getKeyCode();
 	    switch( keyCode ) { 
 	        case KeyEvent.VK_UP:
-	            System.out.println("Key up");
+	        	rotateX += rotationValue;	        	
+	            repaint();
 	            break;
 	        case KeyEvent.VK_DOWN:
-	            System.out.println("Key down");
-	            // handle down 
+	        	rotateX -= rotationValue;
+	            repaint();
 	            break;
 	        case KeyEvent.VK_LEFT:
-	            System.out.println("Key left");
-	            // handle left
+	        	rotateY -= rotationValue;
+	            repaint();
 	            break;
 	        case KeyEvent.VK_RIGHT :
-	            System.out.println("Key right");
-	            // handle right
+	        	rotateY += rotationValue;
+	            repaint();
 	            break;
 	     }
 	}
