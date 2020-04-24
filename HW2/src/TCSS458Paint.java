@@ -18,14 +18,19 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	private static int width;
 	private static int height;
 	private int imageSize; 
-	private int[] pixels;       
+	private int[] pixels; 
+	
+	// 2D Array containing z value after computing 
     private double[][] zBuffer;
+    
+    // A Hash Map containing a string (x, y) and its colors
     private Map<String, int[]> colors;
+    
     /**
      * Select a file to read data in current directory. 
      */
     static private void selectFile() {
-        int approve; //return value from JFileChooser indicates if the user hit cancel
+        int approve;
         JFileChooser chooser = new JFileChooser();
         chooser.setCurrentDirectory(new File("."));
         approve = chooser.showOpenDialog(null);
@@ -72,61 +77,64 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
     
     /**
-     * Reference at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-     * @param x0 of Point P0
-     * @param y0 of Point P0
-     * @param x1 of Point P1
-     * @param y1 of Point P1
-     * @param red value of red color
-     * @param green value of green color
-     * @param blue value of green color
+     * Draw a line from p1 (x1, y1, z1) to p2 (x1, y1, z1) with DDA algorithm
+     * @param matrix transformed matrix
+     * @param p1 point p1
+     * @param p2 point p2
+     * @param red 
+     * @param green
+     * @param blue
      */
     public void plotLine(Matrix matrix, double[] p1, double[] p2, int red, int green, int blue ) {
+    	// After transformation, converts p1 in world to screen
     	double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
-		double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
+		
+    	// After transformation, converts p2 in world to screen
+    	double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
     	
-    	// calculate dx & dy 
-    	int r = 0;
-    	int g = 0;
-    	int b = 0;
-    	double dx = m2[0] - m1[0]; 
+		double dx = m2[0] - m1[0]; 
     	double dy = m2[1] - m1[1]; 
     	double dz = m2[2] - m1[2];
     	
         // calculate steps required for generating pixels 
-        double slopeyx = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
+        double slope = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
       
-        // calculate increment in x & y for each steps 
-        double xInc = dx / (double) slopeyx; 
-        double yInc = dy / (double) slopeyx; 
-        double zInc = dz / (double) slopeyx;
+        // calculate increment in x & y & z for each steps 
+        double xInc = dx / (double) slope; 
+        double yInc = dy / (double) slope; 
+        double zInc = dz / (double) slope;
      
         // Put pixel for each step 
         double x = m1[0];
         double y = m1[1]; 
         double z = m1[2];
-        for (double i = 0; i <= slopeyx; i++) 
+        
+        // Array color
+        int[] color = new int[3];
+        
+        // Draw a line
+        for (double i = 0; i <= slope; i++) 
         { 
+        	// how to calculate z value, watch video week2 lecture 2 drawing a line
+        	// zBuffer containing z value. If z value at (x, y) <= zBuffer(x, y) in last step
+        	// get color value of z last step to draw
     		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
-    			int[] color = new int[3];
+    			color = new int[3];
     			color = colors.get((int)Math.round(x) +","+ (int)Math.round(y));
-    			r = color[0];
-    			g = color[1];
-    			b = color[2];
 			} else {
-				int[] color = new int[3];
+				// else if z value > z zBuffer(x, y) in last step
+				// use current color to draw and update zBuffer with a new z 
+				// and update colors map at (x, y) with a new color
+				color = new int[3];
 				color[0] = red;
 				color[1] = green;
 				color[2] = blue;
-				r = red;
-				g = green;
-				b = blue;
-				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
+				
 				colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
-			
+				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
 			}
 
-        	drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b); 
+        	drawPixel((int)Math.round(x), (int)Math.round(y), color[0], color[1], color[2]); 
             x += xInc;           // increment in x at each step 
             y += yInc;           // increment in y at each step 
             z += zInc;			// increment in y at each step 
@@ -152,7 +160,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	int r, g, b;
     	r = g = b = 0;  
     	
-    	// Load Identity Matrix
+    	// Setup Identity Matrix to ready
     	Matrix matrix = new Transformation().LoadIdentityMatrix();
     	
         Scanner input = getFile();
@@ -162,37 +170,46 @@ public class TCSS458Paint extends JPanel implements KeyListener
                 width = input.nextInt();
                 height = input.nextInt();
                 imageSize = width * height;
-                pixels = new int[imageSize * 3]; 
+                pixels = new int[imageSize * 3];
+                
+                // 2D Array containing z value after computing 
                 zBuffer = new double[width][height];
+                
+                // A Hash Map containing a string (x, y) and its colors
                 colors = new HashMap<String, int[]>();
-                //Set white background 
+                
+                //Set background 
                 for (int i = 0; i < width; i++) {
                 	for (int j = 0; j < height; j++) {
                 		drawPixel( i, j, 255, 255, 255);
-                		zBuffer[i][j] = Double.NEGATIVE_INFINITY;
+                		zBuffer[i][j] = Double.NEGATIVE_INFINITY;	//Initial zBuffer array
                 	}                	
                 }
             }  else if (command.equals("RGB")) {
                 r = (int) (input.nextDouble() * 255);
                 g = (int) (input.nextDouble() * 255);                
                 b = (int) (input.nextDouble() * 255);
-            } else if (command.equals("LINE")){
-            	double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
-            	double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+            } else if (command.equals("LINE")){            	
+            	// Point 1
+            	double[] p1 = new double[] {input.nextDouble(), 
+            									input.nextDouble(), 
+            										input.nextDouble()};
+            	// Point 2
+            	double[] p2 = new double[] {input.nextDouble(), 
+            									input.nextDouble(), 
+            										input.nextDouble()};            	
+            	// Draw a line through two points with a transformation matrix and its color 
                 plotLine(matrix , p1, p2, r, g, b);                
-            } else if (command.equals("LOAD_IDENTITY_MATRIX")) {
-            	matrix = new Transformation().LoadIdentityMatrix();
-            } else if (command.equals("SCALE")) {
+            } else if (command.equals("LOAD_IDENTITY_MATRIX")) { // load identity matrix
+            	matrix = new Transformation().LoadIdentityMatrix();	
+            } else if (command.equals("SCALE")) { // scale an object
             	matrix = new Transformation().Scaling(input.nextDouble(), 
-            							input.nextDouble(),	input.nextDouble())
-            								.multiply(matrix);
-            } else if (command.equals("ROTATEZ")) {
-            	matrix = new Transformation().RotationZ(input.nextDouble())
-            								.multiply(matrix);
-            } else if (command.equals("ROTATEY")) {
-            	matrix = new Transformation().RotationY(input.nextDouble())
-											.multiply(matrix);
-            } else if (command.equals("ROTATEX")) {
+							input.nextDouble(),	input.nextDouble()).multiply(matrix);
+            } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis
+            	matrix = new Transformation().RotationZ(input.nextDouble()).multiply(matrix);
+            } else if (command.equals("ROTATEY")) { // rotate an object via y axis
+            	matrix = new Transformation().RotationY(input.nextDouble()).multiply(matrix);
+            } else if (command.equals("ROTATEX")) { // rotate an object via x axis
             	matrix = new Transformation().RotationX(input.nextDouble())
 											.multiply(matrix);
             } else if (command.equals("TRANSLATE")) {
@@ -351,10 +368,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
      * @param y
      * @return an array minx, maxx
      */
-	private void fillTriangle(ArrayList<Point> points, int red, int green, int blue ) {		
-		int r = 0;
-    	int g = 0;
-    	int b = 0;
+	private void fillTriangle(ArrayList<Point> points, int red, int green, int blue ) {			
     	double minX = 0;
     	double maxX = 0;
     	Point p0 = new Point();				
@@ -366,7 +380,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
 		p0 = points.get(0);
 		p1 = points.get(1);
 		p2 = points.get(2);
-    	
+		
+		
     	double minY = p0.getY();
     	double maxY = p2.getY();
     	
@@ -385,29 +400,21 @@ public class TCSS458Paint extends JPanel implements KeyListener
         		minX = maxX;
         		maxX = temp;
         	}
-        	
+        	int[] color = new int[3];
         	for (double x = minX; x < maxX; x++) {
         		double z = zValue(p0, p1, p2, x, y);
         		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
-        			int[] color = new int[3];
+        			color = new int[3];
         			color = colors.get((int)Math.round(x) +","+ (int)Math.round(y));
-        			r = color[0];
-        			g = color[1];
-        			b = color[2];
         		} else {
-        			int[] color = new int[3];
+        			color = new int[3];
         			color[0] = red;
     				color[1] = green;
     				color[2] = blue; 
-    				
-    				r = red;
-    				g = green;
-    				b = blue;     
-    				
         			zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
         			colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
         		}
-        		drawPixel((int)Math.round(x), (int)Math.round(y), r, g, b);
+        		drawPixel((int)Math.round(x), (int)Math.round(y), color[0], color[1], color[2]);
         	}
     	}
     }
@@ -423,10 +430,14 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	 */
 	private double zValue(Point p0, Point p1, Point p2, double x, double y) {
 		double[] crossProduct = new double[3];
-		crossProduct[0] = (p1.getY() - p0.getY()) * (p2.getZ() - p0.getZ()) - (p2.getY() - p0.getY()) * (p1.getZ() - p0.getZ());
-		crossProduct[1] = (p1.getZ() - p0.getZ()) * (p2.getX() - p0.getX()) - (p1.getX() - p0.getX()) * (p2.getZ() - p0.getZ());
-		crossProduct[2] = (p1.getX() - p0.getX()) * (p2.getY() - p0.getY()) - (p2.getX() - p0.getX()) * (p1.getY() - p0.getY());
-		return p0.getZ() - (crossProduct[0] * (x - p0.getX()) + crossProduct[1] * (y - p0.getY())) / crossProduct[2];
+		crossProduct[0] = (p1.getY() - p0.getY()) * (p2.getZ() - p0.getZ()) 
+							- (p2.getY() - p0.getY()) * (p1.getZ() - p0.getZ());
+		crossProduct[1] = (p1.getZ() - p0.getZ()) * (p2.getX() - p0.getX()) 
+							- (p1.getX() - p0.getX()) * (p2.getZ() - p0.getZ());
+		crossProduct[2] = (p1.getX() - p0.getX()) * (p2.getY() - p0.getY()) 
+							- (p2.getX() - p0.getX()) * (p1.getY() - p0.getY());
+		return p0.getZ() - (crossProduct[0] * (x - p0.getX()) 
+							+ crossProduct[1] * (y - p0.getY())) / crossProduct[2];
 	}
 	
 	/**
