@@ -20,7 +20,6 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	private static int height;
 	private double rotateX = 0;
 	private double rotateY = 0;
-	private double rotateZ = 0; 
 	private int keyCode = 0;
 	private int imageSize; 
 	private int[] pixels; 
@@ -166,7 +165,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	int r, g, b;
     	r = g = b = 0;  
     	Scanner input = getFile();    	
-    	Matrix matrix = new Transformation().LoadIdentityMatrix();        
+    	Matrix matrix = new Transformation().LoadIdentityMatrix();  
         while (input.hasNext()) {         	
             String command = input.next();
             if (command.equals("DIM")){
@@ -209,10 +208,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
             	matrix = new Transformation().Scaling(input.nextDouble(), 
 							input.nextDouble(),	input.nextDouble()).multiply(matrix);
             } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis  
-            	if (keyCode == 0) {
-            		rotateZ = input.nextDouble();
-            	}
-            	matrix = new Transformation().RotationZ(rotateZ).multiply(matrix);
+            	matrix = new Transformation().RotationZ(input.nextDouble()).multiply(matrix);
             } else if (command.equals("ROTATEY")) { // rotate an object via y axis
             	if (keyCode == 0) {
             		rotateY = input.nextDouble();
@@ -264,40 +260,14 @@ public class TCSS458Paint extends JPanel implements KeyListener
 		fillTriangle(points, r, g, b);
 	}
 	
-	private void drawSolidCube(Matrix matrix, int r, int g, int b) {
-		double[] p1 = new double[] {-0.5,-0.5,-0.5};
-		double[] p2 = new double[] {0.5,-0.5,-0.5};
-		double[] p3 = new double[] {-0.5,0.5,-0.5};
-		double[] p4 = new double[] {0.5,0.5,-0.5};
-		double[] p5 = new double[] {-0.5,-0.5,0.5};
-		double[] p6 = new double[] {0.5,-0.5,0.5};
-		double[] p7 = new double[] {-0.5,0.5,0.5};
-		double[] p8 = new double[] {0.5,0.5,0.5};
-		
-		plotLine(matrix, p1, p3, r, g, b);
-		plotLine(matrix, p1, p5, r, g, b);
-		plotLine(matrix, p3, p7, r, g, b);
-		plotLine(matrix, p5, p7, r, g, b);
-				
-		plotLine(matrix, p1, p2, r, g, b);
-		plotLine(matrix, p2, p6, r, g, b);
-		plotLine(matrix, p5, p6, r, g, b);
-		plotLine(matrix, p7, p8, r, g, b);
-				
-		plotLine(matrix, p3, p4, r, g, b);
-		plotLine(matrix, p4, p8, r, g, b);
-		plotLine(matrix, p6, p8, r, g, b);
-		plotLine(matrix, p2, p4, r, g, b);
-	}
-	
 	/**
-	 * 
+	 * Draw a solid cube
 	 * @param matrix
 	 * @param r
 	 * @param g
 	 * @param b
 	 */
-	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
+	private void drawSolidCube(Matrix matrix, int r, int g, int b) {
 		double[] p1 = new double[] {-0.5,-0.5,-0.5};
 		double[] p2 = new double[] {0.5,-0.5,-0.5};
 		double[] p3 = new double[] {-0.5,0.5,-0.5};
@@ -327,7 +297,40 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	}
 	
 	/**
-	 * 
+	 * Draw a wire frame cube
+	 * @param matrix
+	 * @param r
+	 * @param g
+	 * @param b
+	 */
+	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
+		double[] p1 = new double[] {-0.5,-0.5,-0.5};
+		double[] p2 = new double[] {0.5,-0.5,-0.5};
+		double[] p3 = new double[] {-0.5,0.5,-0.5};
+		double[] p4 = new double[] {0.5,0.5,-0.5};
+		double[] p5 = new double[] {-0.5,-0.5,0.5};
+		double[] p6 = new double[] {0.5,-0.5,0.5};
+		double[] p7 = new double[] {-0.5,0.5,0.5};
+		double[] p8 = new double[] {0.5,0.5,0.5};
+		
+		plotLine(matrix, p1, p3, r, g, b);
+		plotLine(matrix, p1, p5, r, g, b);
+		plotLine(matrix, p3, p7, r, g, b);
+		plotLine(matrix, p5, p7, r, g, b);
+				
+		plotLine(matrix, p1, p2, r, g, b);
+		plotLine(matrix, p2, p6, r, g, b);
+		plotLine(matrix, p5, p6, r, g, b);
+		plotLine(matrix, p7, p8, r, g, b);
+				
+		plotLine(matrix, p3, p4, r, g, b);
+		plotLine(matrix, p4, p8, r, g, b);
+		plotLine(matrix, p6, p8, r, g, b);
+		plotLine(matrix, p2, p4, r, g, b);
+	}
+	
+	/**
+	 * Convert point to a matrix
 	 * @param matrix
 	 * @param width
 	 * @param height
@@ -346,7 +349,6 @@ public class TCSS458Paint extends JPanel implements KeyListener
     	data[2] = matrix0.getMatrix()[2][0];
     	data[3] = matrix0.getMatrix()[3][0];
     	return data;
-    	
 	}
  
     /**
@@ -360,19 +362,19 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
     
     /**
-     * 
-     * @param x0
+     * Compute slope
+     * @param x0 
      * @param y0
      * @param x1
      * @param y1
-     * @return
+     * @return slope
      */
     private double slope(double x0, double y0, double x1, double y1) {
     	return (y0 - y1)/(x0 - x1);
     }
     
     /**
-     * fill a triangle with 3 vertexes
+     * Fill a triangle with 3 vertexes
      * @param vertexes v0, v1, v2
      * @param minY 
      * @param maxY
@@ -431,13 +433,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
 	
 	/**
-	 * 
-	 * @param p0
-	 * @param p1
-	 * @param p2
+	 * Calculate z-value 
+	 * @param p0 point 1
+	 * @param p1 point 2
+	 * @param p2 point 3
 	 * @param x
 	 * @param y
-	 * @return
+	 * @return z value of a plane with 3 points
 	 */
 	private double zValue(Point p0, Point p1, Point p2, double x, double y) {
 		double[] crossProduct = new double[3];
@@ -486,7 +488,36 @@ public class TCSS458Paint extends JPanel implements KeyListener
         frame.setVisible( true );
     }
     
-    public class Point implements Comparable<Point>{
+	@Override
+	public void keyPressed(KeyEvent e) {
+		keyCode = e.getKeyCode();
+	    switch( keyCode ) { 
+	        case KeyEvent.VK_UP:
+	        	rotateX -= rotationValue;	        	
+	            repaint();
+	            break;
+	        case KeyEvent.VK_DOWN:
+	        	rotateX += rotationValue;
+	            repaint();
+	            break;
+	        case KeyEvent.VK_LEFT:
+	        	rotateY -= rotationValue;
+	            repaint();
+	            break;
+	        case KeyEvent.VK_RIGHT :
+	        	rotateY += rotationValue;
+	            repaint();
+	            break;
+	     }
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {}
+
+	@Override
+	public void keyReleased(KeyEvent e) {}
+	
+	public class Point implements Comparable<Point>{
     	private double x;
     	private double y;
     	private double z;
@@ -544,39 +575,4 @@ public class TCSS458Paint extends JPanel implements KeyListener
     		return (int)(this.x - o.x);
     	}
     }
-
-	@Override
-	public void keyPressed(KeyEvent e) {
-		keyCode = e.getKeyCode();
-	    switch( keyCode ) { 
-	        case KeyEvent.VK_UP:
-	        	rotateX += rotationValue;	        	
-	            repaint();
-	            break;
-	        case KeyEvent.VK_DOWN:
-	        	rotateX -= rotationValue;
-	            repaint();
-	            break;
-	        case KeyEvent.VK_LEFT:
-	        	rotateY -= rotationValue;
-	            repaint();
-	            break;
-	        case KeyEvent.VK_RIGHT :
-	        	rotateY += rotationValue;
-	            repaint();
-	            break;
-	     }
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 }
