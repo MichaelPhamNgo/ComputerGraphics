@@ -1,3 +1,9 @@
+/**
+ * Tranformation class
+ * @author pham19@uw.edu
+ * Homework 2: Draw graphs in 3D
+ * Due: April 24, 2020
+ */
 public class Transformation {
 	/**
 	 * @return a identity matrix
@@ -12,7 +18,6 @@ public class Transformation {
 	}
 	
 	/**
-	 * translate a point with x, y, z
 	 * @param x
 	 * @param y
 	 * @param z
@@ -61,7 +66,6 @@ public class Transformation {
 	}
 	
 	/**
-	 * 
 	 * @param theta rotate in y axis
 	 * @return a rotated matrix
 	 */

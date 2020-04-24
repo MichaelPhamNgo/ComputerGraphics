@@ -1,4 +1,10 @@
 import java.util.Arrays;
+/**
+ * Matrix library
+ * @author pham19@uw.edu
+ * Homework 2: Draw graphs in 3D
+ * Due: April 24, 2020
+ */
 public class Matrix {
 	private int rows;
 	private int columns;
