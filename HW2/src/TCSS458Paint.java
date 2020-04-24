@@ -240,32 +240,32 @@ public class TCSS458Paint extends JPanel
 	}
 	
 	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
-		double[] p1 = new double[] {-1,-1,-1};
-		double[] p2 = new double[] {1,-1,-1};
-		double[] p3 = new double[] {-1,1,-1};
-		double[] p4 = new double[] {1,1,-1};
-		double[] p5 = new double[] {-1,-1,1};
-		double[] p6 = new double[] {1,-1,1};
-		double[] p7 = new double[] {-1,1,1};
-		double[] p8 = new double[] {1,1,1};
+		double[] p1 = new double[] {-0.5,-0.5,-0.5};
+		double[] p2 = new double[] {0.5,-0.5,-0.5};
+		double[] p3 = new double[] {-0.5,0.5,-0.5};
+		double[] p4 = new double[] {0.5,0.5,-0.5};
+		double[] p5 = new double[] {-0.5,-0.5,0.5};
+		double[] p6 = new double[] {0.5,-0.5,0.5};
+		double[] p7 = new double[] {-0.5,0.5,0.5};
+		double[] p8 = new double[] {0.5,0.5,0.5};
 		
-//		drawTriangle(matrix, p1, p5, p7, r, g, b);
-//		drawTriangle(matrix, p1, p3, p7, r, g, b);
+		drawTriangle(matrix, p1, p5, p7, r, g, b);
+		drawTriangle(matrix, p1, p3, p7, r, g, b);
 		
-//		drawTriangle(matrix, p1, p5, p6, r, g, b);
-//		drawTriangle(matrix, p1, p2, p6, r, g, b);
-//		
-//		drawTriangle(matrix, p3, p7, p8, r, g, b);
-//		drawTriangle(matrix, p3, p4, p8, r, g, b);
-//				
-//		drawTriangle(matrix, p5, p6, p7, r, g, b);
-//		drawTriangle(matrix, p6, p7, p8, r, g, b);
-//				
-//		drawTriangle(matrix, p1, p2, p3, r, g, b);
-//		drawTriangle(matrix, p2, p3, p4, r, g, b);
-//		
-//		drawTriangle(matrix, p2, p6, p8, r, g, b);
-//		drawTriangle(matrix, p2, p4, p8, r, g, b);
+		drawTriangle(matrix, p1, p5, p6, r, g, b);
+		drawTriangle(matrix, p1, p2, p6, r, g, b);
+		
+		drawTriangle(matrix, p3, p7, p8, r, g, b);
+		drawTriangle(matrix, p3, p4, p8, r, g, b);
+				
+		drawTriangle(matrix, p5, p6, p7, r, g, b);
+		drawTriangle(matrix, p6, p7, p8, r, g, b);
+				
+		drawTriangle(matrix, p1, p2, p3, r, g, b);
+		drawTriangle(matrix, p2, p3, p4, r, g, b);
+		
+		drawTriangle(matrix, p2, p6, p8, r, g, b);
+		drawTriangle(matrix, p2, p4, p8, r, g, b);
 	}
 	
 	/**
