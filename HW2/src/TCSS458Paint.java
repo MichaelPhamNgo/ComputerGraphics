@@ -153,6 +153,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
         createImage();
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         WritableRaster wr_raster = image.getRaster();
+        System.out.println(Arrays.toString(pixels));
         wr_raster.setPixels(0, 0, width, height, pixels);        
         g.drawImage(image, 0, 0, null);
     }
@@ -279,13 +280,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
 		double[] m3 = pointToMatrix(matrix, width, height, p3[0], p3[1], p3[2]);
 		
 		//Step 2: Use scanline algorithm to fill the triangle.
-		//Add vertexes to ArrayList to array them in x order.
+		//Add vertices to ArrayList to array them in x order.
 		ArrayList<Point> points = new ArrayList<Point>(); 
 		points.add(new Point(m1[0], m1[1], m1[2], m1[3]));
 		points.add(new Point(m2[0], m2[1], m2[2], m2[3]));
 		points.add(new Point(m3[0], m3[1], m3[2], m3[3]));  
 		
-		//Sorts vertexes based on x
+		//Sorts vertices based on x
 		Collections.sort(points);
 		
 		//Draw a triangle
@@ -456,7 +457,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
         			color[0] = red;
     				color[1] = green;
     				color[2] = blue; 
-        			zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
+        			zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;        		
         			colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
         		}
         		drawPixel((int)Math.round(x), (int)Math.round(y), color[0], color[1], color[2]);
@@ -465,7 +466,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
 	
 	/**
-	 * Calculate z-value 
+	 * Compute z-value 
 	 * @param p0 point 1
 	 * @param p1 point 2
 	 * @param p2 point 3
@@ -486,8 +487,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	}
 	
 	/**
-	 * Sorts vertexes by y.
-	 * @param vertexes
+	 * Sorts Vertices by y.
+	 * @param Vertices
 	 */
 	public void sortByY(ArrayList<Point> points) {
 		Point point = new Point();

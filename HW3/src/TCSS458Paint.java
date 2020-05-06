@@ -6,7 +6,7 @@ import javax.swing.*;
 import java.io.*;
 import java.util.*;
 /**
- * Implements drawing shapes homework 2
+ * Implements drawing shapes homework 3
  * @author pham19@uw.edu
  * Homework 2: Draw graphs in 3D
  * Due: April 24, 2020
@@ -23,7 +23,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	private int keyCode = 0;
 	private int imageSize; 
 	private int[] pixels; 
-	
+	private int[] newpixels;
 	
 	// 2D Array containing z value after computing 
     private double[][] zBuffer;
@@ -75,10 +75,33 @@ public class TCSS458Paint extends JPanel implements KeyListener
     /**
      * Draw a pixel at coordinate P(x, y) with color in RGB
      */
-    void drawPixel(int x, int y, int r, int g, int b) {
-        pixels[(height-y-1)*width*3+x*3] = r;
+    void drawPixel(int x, int y, int r, int g, int b) {    	
+    	pixels[(height-y-1)*width*3+x*3] = r;
         pixels[(height-y-1)*width*3+x*3+1] = g;
-        pixels[(height-y-1)*width*3+x*3+2] = b;                
+        pixels[(height-y-1)*width*3+x*3+2] = b;
+    	
+    	int nht = height /2;
+    	int nwd = width /2;
+
+    	newpixels = new int[nht * nwd * 3];    	
+    	for(int row = 0; row < nht; row++) {
+    		for(int col = 0; col < nwd; col++) {
+    			newpixels [row * nwd * 3 + col * 3] = (pixels[(2 * row) * (width * 3) +  (2 * col) * 3] 
+    													+ pixels[((2 * row) * (width * 3) +  (2 * col) * 3) + 3] 
+    													+ pixels[(2 *row + 1) * (width * 3) +  (2 * col) * 3]  
+    													+ pixels[((2 *row + 1) * (width * 3) +  (2 * col) * 3) + 3])/4;
+    			
+    			newpixels [row * nwd * 3 + col * 3 + 1] = (pixels[(2 * row) * (width * 3) +  (2 * col) * 3 + 1] 
+															+ pixels[((2 * row) * (width * 3) +  (2 * col) * 3) + 3 + 1] 
+															+ pixels[(2 *row + 1) * (width * 3) +  (2 * col) * 3 + 1]  
+															+ pixels[((2 *row + 1) * (width * 3) +  (2 * col) * 3) + 3 + 1])/4;   
+    			
+    			newpixels [row * nwd * 3 + col * 3 + 2] = (pixels[(2 * row) * (width * 3) +  (2 * col) * 3 + 2] 
+															+ pixels[((2 * row) * (width * 3) +  (2 * col) * 3) + 3 + 2] 
+															+ pixels[(2 *row + 1) * (width * 3) +  (2 * col) * 3 + 2]  
+															+ pixels[((2 *row + 1) * (width * 3) +  (2 * col) * 3) + 3 + 2])/4;
+    		}    		
+    	}    	
     }
     
     /**
@@ -153,6 +176,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
         createImage();
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         WritableRaster wr_raster = image.getRaster();
+        System.out.println(Arrays.toString(pixels));
+    	System.exit(0);
         wr_raster.setPixels(0, 0, width, height, pixels);        
         g.drawImage(image, 0, 0, null);
     }
@@ -171,11 +196,9 @@ public class TCSS458Paint extends JPanel implements KeyListener
         while (input.hasNext()) {         	
             String command = input.next();
             if (command.equals("DIM")){
-                width = input.nextInt();
-                height = input.nextInt();
-                imageSize = width * height;
-                pixels = new int[imageSize * 3];
-                
+                width = input.nextInt() * 2;
+                height = input.nextInt() * 2;                
+                pixels = new int[width * height * 3];                
                 // 2D Array containing z value after computing 
                 zBuffer = new double[width][height];
                 
@@ -229,6 +252,18 @@ public class TCSS458Paint extends JPanel implements KeyListener
             	matrix = new Transformation().Translation(input.nextDouble(), 
             							input.nextDouble(), input.nextDouble())
             								.multiply(matrix);
+            } else if (command.equals("LIGHT_DIRECTION")) {
+            	
+            } else if (command.equals("LOOKAT")) {
+            	Vector eye = new Vector(input.nextDouble(), input.nextDouble(), input.nextDouble());
+            	Vector target = new Vector(input.nextDouble(), input.nextDouble(), input.nextDouble());
+            	Vector up = new Vector(input.nextDouble(), input.nextDouble(), input.nextDouble());
+            	matrix = new Transformation().LootAt(eye, target, up).multiply(matrix);
+            } else if (command.equals("ORTHO")) {
+            	matrix = new Transformation().OrthographicProjection(
+            			input.nextDouble(),	input.nextDouble(), input.nextDouble(),
+            			input.nextDouble(),input.nextDouble(), input.nextDouble())
+							.multiply(matrix);
             } else if (command.equals("SOLID_CUBE")) {            	 
             	if (rotateAY == 0) {
             		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
@@ -279,13 +314,13 @@ public class TCSS458Paint extends JPanel implements KeyListener
 		double[] m3 = pointToMatrix(matrix, width, height, p3[0], p3[1], p3[2]);
 		
 		//Step 2: Use scanline algorithm to fill the triangle.
-		//Add vertexes to ArrayList to array them in x order.
+		//Add vertices to ArrayList to array them in x order.
 		ArrayList<Point> points = new ArrayList<Point>(); 
 		points.add(new Point(m1[0], m1[1], m1[2], m1[3]));
 		points.add(new Point(m2[0], m2[1], m2[2], m2[3]));
 		points.add(new Point(m3[0], m3[1], m3[2], m3[3]));  
 		
-		//Sorts vertexes based on x
+		//Sorts vertices based on x
 		Collections.sort(points);
 		
 		//Draw a triangle
@@ -465,7 +500,7 @@ public class TCSS458Paint extends JPanel implements KeyListener
     }
 	
 	/**
-	 * Calculate z-value 
+	 * Compute z-value 
 	 * @param p0 point 1
 	 * @param p1 point 2
 	 * @param p2 point 3
@@ -486,8 +521,8 @@ public class TCSS458Paint extends JPanel implements KeyListener
 	}
 	
 	/**
-	 * Sorts vertexes by y.
-	 * @param vertexes
+	 * Sorts Vertices by y.
+	 * @param Vertices
 	 */
 	public void sortByY(ArrayList<Point> points) {
 		Point point = new Point();
