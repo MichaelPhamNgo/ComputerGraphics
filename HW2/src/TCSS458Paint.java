@@ -153,7 +153,6 @@ public class TCSS458Paint extends JPanel implements KeyListener
         createImage();
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         WritableRaster wr_raster = image.getRaster();
-        System.out.println(Arrays.toString(pixels));
         wr_raster.setPixels(0, 0, width, height, pixels);        
         g.drawImage(image, 0, 0, null);
     }
