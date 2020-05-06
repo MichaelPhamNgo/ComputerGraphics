@@ -424,10 +424,12 @@ public class HW3Solution extends JPanel implements KeyListener {
                     Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(ctm,cubeVert[cubeInd[i+1]]));
                     Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(ctm,cubeVert[cubeInd[i+2]]));
                  
-                    drawTri(v1.x/v1.w,v1.y/v1.w,v1.z/v1.w,
-                            v2.x/v2.w,v2.y/v2.w,v2.z/v2.w,
-                            v3.x/v3.w,v3.y/v3.w,v3.z/v3.w,
-                            r,g,b);
+                    double angle = v1.normalTriangle(v2, v3).angleTwoVector(lightDirection);
+                    
+                    drawTri(v1.x/v1.w, v1.y/v1.w, v1.z/v1.w,
+                            v2.x/v2.w, v2.y/v2.w, v2.z/v2.w,
+                            v3.x/v3.w, v3.y/v3.w, v3.z/v3.w,
+                            newColor(r, angle), newColor(g, angle),newColor(b, angle));
                }
 
             } else if (command.equals("WIREFRAME_CUBE")){

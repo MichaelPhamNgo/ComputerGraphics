@@ -62,9 +62,9 @@ public class Vector {
 	 */
 	public Vector crossProduct(Vector v) {
 		Vector newVector = new Vector();
-		newVector.x = this.y * v.z - v.y * this.z;
+		newVector.x = this.y * v.z - this.z * v.y ;
 		newVector.y = this.z * v.x - this.x * v.z;
-		newVector.z = this.x * v.y - this.x * v.y;
+		newVector.z = this.x * v.y - this.y * v.x;
 		return newVector;
 	}
 	
@@ -85,8 +85,8 @@ public class Vector {
 	 * @param v3
 	 * @return
 	 */
-	public Vector normalTriangle(Vector v2, Vector v3) {
-		return (v2.subtract(this).crossProduct(v3).subtract(this));
+	public Vector normalTriangle(Vector v2, Vector v3) {		
+		return (v2.subtract(this).crossProduct(v3.subtract(this)));
 	}
 	
 	/**
