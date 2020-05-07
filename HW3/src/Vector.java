@@ -73,7 +73,7 @@ public class Vector {
 	 * @param v
 	 * @return
 	 */
-	public double angleTwoVector(Vector v) {
+	public double cosTheta(Vector v) {
 		return this.dotProduct(v) / 
 				(Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z) 
 					* (Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)));
@@ -85,8 +85,8 @@ public class Vector {
 	 * @param v3
 	 * @return
 	 */
-	public Vector normalTriangle(Vector v2, Vector v3) {		
-		return (v2.subtract(this).crossProduct(v3.subtract(this)));
+	public static Vector normalTriangle(Vector v1, Vector v2, Vector v3) {		
+		return (v2.subtract(v1).crossProduct(v3.subtract(v1)));
 	}
 	
 	/**

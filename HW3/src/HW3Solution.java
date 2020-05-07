@@ -297,10 +297,9 @@ public class HW3Solution extends JPanel implements KeyListener {
 				near = input.nextFloat();
 				far = input.nextFloat();
 				perspective = new Matrix(new Vector(2.0/(right - left), 0, 0,  -(right + left)/(right - left)), 
-						new Vector(0, 2.0/(top - bottom)	, 0, -(top + bottom)/(top - bottom)), 
-						new Vector(0, 0, -2.0/(far - near), -(far + near)/(far - near)), 
-						new Vector(0,0,0, 1));
-
+						new Vector(0, 2.0/(top - bottom), 0, -(top + bottom)/(top - bottom)), 
+						new Vector(0, 0, 2.0/(far - near), (far + near)/(far - near)), 
+						new Vector(0, 0, 0, 1));
 			} else if (command.equals("FRUSTUM")) {
 				float left,right,top,bottom,near,far;
 				left = input.nextFloat();
@@ -311,7 +310,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 				far = input.nextFloat();
 				perspective = new Matrix(new Vector(2.0 * near / (right - left), 0, 0, -(near * (right + left)) / (right - left)), 
 						new Vector(0, 2.0 * near / (top - bottom), 0, -(near * (top + bottom)) / (top - bottom)), 
-						new Vector(0, 0, -(far+near) / (far - near), (2.0 * far *near) / (far - near)), 
+						new Vector(0, 0, -(far+near) / (far - near), (2.0 * far * near) / (far - near)), 
 						new Vector(0,0,-1, 0));
 
 			} else if (command.equals("LINE")){
@@ -384,7 +383,6 @@ public class HW3Solution extends JPanel implements KeyListener {
 						new Vector(0,0,0,1)
 						);
 				ctm = Matrix.multiply(trans,ctm);
-
 			} else if (command.equals("TRI")){
 				float x1,y1,z1,x2,y2,z2,x3,y3,z3;
 				x1 = input.nextFloat();
@@ -396,30 +394,47 @@ public class HW3Solution extends JPanel implements KeyListener {
 				x3 = input.nextFloat();
 				y3 = input.nextFloat();
 				z3 = input.nextFloat();
-
-				Matrix newMatrix = Matrix.multiply(Matrix.multiply(perspective, lookAt), ctm);
-
-				Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,new Vector(x1,y1,z1,1)));
-				Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,new Vector(x2,y2,z2,1)));
-				Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,new Vector(x3,y3,z3,1)));
-
-				double angle = v1.normalTriangle(v2, v3).angleTwoVector(lightDirection);
 				
+				// Multiply lookAt to ctm
+				Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x1,y1,z1,1)));				
+				Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x2,y2,z2,1)));
+				Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x3,y3,z3,1)));
+				
+				// Compute cosTheta for shading
+				double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
+				
+				//Projection to the points
+				v1 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v1));
+				v2 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v2));
+				v3 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v3));
+				if(cosTheta < 0) {
+					cosTheta = 0;
+				} else if (cosTheta > 1) {
+					cosTheta = 1;
+				}
 				drawTri(v1.x / v1.w, v1.y / v1.w, v1.z / v1.w, v2.x / v2.w, v2.y / v2.w, v2.z / v2.w, v3.x / v3.w,
-						v3.y / v3.w, v3.z / v3.w, newColor(r, angle), newColor(g, angle), newColor(b, angle));
+						v3.y / v3.w, v3.z / v3.w, newColor(r, cosTheta), newColor(g, cosTheta), newColor(b, cosTheta));
 			} else if (command.equals("SOLID_CUBE")){
-				Matrix newMatrix = Matrix.multiply(Matrix.multiply(perspective, lookAt), ctm);
-		
-
-				for (int i = 0; i < 36; i += 3) {   // making 12 triangles, two for each cube face							
-					Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,cubeVert[cubeInd[i]]));
-					Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,cubeVert[cubeInd[i+1]]));
-					Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(newMatrix,cubeVert[cubeInd[i+2]]));
-
-					double angle = v1.normalTriangle(v2, v3).angleTwoVector(lightDirection);
-
+				for (int i = 0; i < 36; i += 3) {   // making 12 triangles, two for each cube face		
+					
+					// Multiply lookAt to ctm
+					Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i]]));
+					Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i+1]]));
+					Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i+2]]));
+					
+					// Compute cosTheta for shading
+					double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
+					
+					v1 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v1));
+					v2 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v2));
+					v3 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v3));
+					if(cosTheta < 0) {
+						cosTheta = 0;
+					} else if (cosTheta > 1) {
+						cosTheta = 1;
+					}
 					drawTri(v1.x / v1.w, v1.y / v1.w, v1.z / v1.w, v2.x / v2.w, v2.y / v2.w, v2.z / v2.w, v3.x / v3.w,
-							v3.y / v3.w, v3.z / v3.w, newColor(r,angle), newColor(g,angle), newColor(b,angle));
+							v3.y / v3.w, v3.z / v3.w, newColor(r,cosTheta), newColor(g,cosTheta), newColor(b,cosTheta));
 				}
 
 			} else if (command.equals("WIREFRAME_CUBE")){
@@ -457,8 +472,8 @@ public class HW3Solution extends JPanel implements KeyListener {
 	 * @param shading
 	 * @return
 	 */
-	private int newColor(int color, double shading) {
-		return (int) Math.round(color * 0.5 + 0.5 * shading * color);
+	private int newColor(int color, double shadingFactor) {
+		return (int) Math.round(color * 0.5 + 0.5 * shadingFactor * color);
 	}
 
 	public HW3Solution() {
@@ -512,7 +527,6 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 	static private Scanner getFile() {
 		Scanner input = null; 
-		System.out.println(selectedFile);
 		try {            
 			input = new Scanner(selectedFile);
 		} catch (Exception e) {
