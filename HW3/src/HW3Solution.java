@@ -14,8 +14,11 @@ public class HW3Solution extends JPanel implements KeyListener {
 	private static final long serialVersionUID = -8453249965841461072L;
 	static int width;
 	static int height;
+	int newWidth;
+	int newHeight;
 	int imageSize;
-	int[] pixels; 
+	int[] pixels;
+	int[] nPixels;
 
 	int[] minx;
 	int[] maxx;   
@@ -30,16 +33,29 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 	// to allow for initialization, checkZ turns off the z checking
 	void drawPixel(int x, int y, double z, int r, int g, int b, boolean checkZ) {
-		if (x < 0 || x >= width) {
+		if (x < 0 || x >= newWidth) {
 			System.out.println("Bad x: "+x);
-		} else if (y < 0 || y >= height) {
+		} else if (y < 0 || y >= newHeight) {
 			System.out.println("Bad y: "+y);
 		} else if (!checkZ || z > zbuffer[y][x]) {  
-			pixels[(height-y-1)*width*3+x*3] = r;
-			pixels[(height-y-1)*width*3+x*3+1] = g;
-			pixels[(height-y-1)*width*3+x*3+2] = b;
+			nPixels[(newHeight-y-1)*newWidth*3+x*3] = r;
+			nPixels[(newHeight-y-1)*newWidth*3+x*3+1] = g;
+			nPixels[(newHeight-y-1)*newWidth*3+x*3+2] = b;
 			zbuffer[y][x] = z;
 		}                
+	}
+	
+	private void antiAlias() {
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				pixels[row * width * 3 + col * 3] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3]
+														+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3]) / 4;
+				pixels[row * width * 3 + col * 3 + 1] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 1] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]
+															+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 1] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]) / 4;
+				pixels[row * width * 3 + col * 3 + 2] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 2] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]
+															+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 2] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]) / 4;
+			}
+		}
 	}
 
 	void drawTri(double x1,double y1, double z1,
@@ -48,7 +64,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 			int r,int g,int b){
 
 		// initialize the scanline data structure (min/max x for each y-value)           
-		for (int i = 0; i < height; i++) {
+		for (int i = 0; i < newHeight; i++) {
 			minx[i] = Integer.MIN_VALUE;
 			maxx[i] = Integer.MIN_VALUE;
 		}
@@ -59,7 +75,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 		drawLine(x3,y3,z3,x1,y1,z1,r,g,b);
 
 		// paint the scanlines
-		for (int y = 0; y < height; y++) {
+		for (int y = 0; y < newHeight; y++) {
 			if (minx[y] != Integer.MIN_VALUE) {
 
 				if (maxx[y] == minx[y]) {
@@ -82,10 +98,10 @@ public class HW3Solution extends JPanel implements KeyListener {
 			int r, int g, int b) {
 
 
-		int  scrX1 = (int)Math.round(  ((x1+1)*(width-1)) /2.0), 
-				scrY1 = (int)Math.round(  ((y1+1)*(height-1)) /2.0), 
-				scrX2 = (int)Math.round(  ((x2+1)*(width-1)) /2.0), 
-				scrY2 = (int)Math.round(  ((y2+1)*(height-1))/2.0);
+		int  scrX1 = (int)Math.round(  ((x1+1)*(newWidth-1)) /2.0), 
+				scrY1 = (int)Math.round(  ((y1+1)*(newHeight-1)) /2.0), 
+				scrX2 = (int)Math.round(  ((x2+1)*(newWidth-1)) /2.0), 
+				scrY2 = (int)Math.round(  ((y2+1)*(newHeight-1))/2.0);
 
 		if (Math.abs(scrY1-scrY2) >= Math.abs(scrX1-scrX2)) {  // steep lines
 
@@ -207,7 +223,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 		Matrix ctm = Matrix.IDENTITY;
 		Matrix lookAt = new Matrix();
-		Matrix perspective = new Matrix();
+		Matrix projectionMatrix = new Matrix();
 		Vector lightDirection = new Vector();
 
 		Matrix viewerXmatr = new Matrix(
@@ -234,26 +250,27 @@ public class HW3Solution extends JPanel implements KeyListener {
 			String command = input.next();
 			if (command.equals("DIM")){
 				width = input.nextInt();
-				height = input.nextInt();
-
-				minx = new int[height];
-				maxx = new int[height];
-
-				minz = new double[height];
-				maxz = new double[height];
-
-				imageSize = width * height;
-				pixels = new int[imageSize * 3];
-				zbuffer = new double[height][];
+				newWidth = width * 2;
+				height = input.nextInt();				
+				newHeight = height * 2;
+				
+				minx = new int[newHeight];
+				maxx = new int[newHeight];
+				minz = new double[newHeight];
+				maxz = new double[newHeight];
+				
+				pixels = new int[width * height * 3];
+				nPixels = new int[newWidth * newHeight * 3];
+				zbuffer = new double[newHeight][];
 
 				// init the z buffer
-				for (int row = 0; row < height; row++) {
-					zbuffer[row] = new double[width];
+				for (int row = 0; row < newHeight; row++) {
+					zbuffer[row] = new double[newWidth];
 				}
 
 				// init the background color
-				for (int x = 0; x < width; x++) {
-					for (int y = 0; y < height; y++) {
+				for (int x = 0; x < newWidth; x++) {
+					for (int y = 0; y < newHeight; y++) {
 						drawPixel(x,y,Double.NEGATIVE_INFINITY,255,255,255, false);
 					}
 				}                 
@@ -296,7 +313,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 				bottom = input.nextFloat();
 				near = input.nextFloat();
 				far = input.nextFloat();
-				perspective = new Matrix(new Vector(2.0/(right - left), 0, 0,  -(right + left)/(right - left)), 
+				projectionMatrix = new Matrix(new Vector(2.0/(right - left), 0, 0,  -(right + left)/(right - left)), 
 						new Vector(0, 2.0/(top - bottom), 0, -(top + bottom)/(top - bottom)), 
 						new Vector(0, 0, 2.0/(far - near), (far + near)/(far - near)), 
 						new Vector(0, 0, 0, 1));
@@ -308,7 +325,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 				bottom = input.nextFloat();
 				near = input.nextFloat();
 				far = input.nextFloat();
-				perspective = new Matrix(new Vector(2.0 * near / (right - left), 0, 0, -(near * (right + left)) / (right - left)), 
+				projectionMatrix = new Matrix(new Vector(2.0 * near / (right - left), 0, 0, -(near * (right + left)) / (right - left)), 
 						new Vector(0, 2.0 * near / (top - bottom), 0, -(near * (top + bottom)) / (top - bottom)), 
 						new Vector(0, 0, -(far+near) / (far - near), (2.0 * far * near) / (far - near)), 
 						new Vector(0,0,-1, 0));
@@ -395,44 +412,55 @@ public class HW3Solution extends JPanel implements KeyListener {
 				y3 = input.nextFloat();
 				z3 = input.nextFloat();
 				
-				// Multiply lookAt to ctm
-				Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x1,y1,z1,1)));				
-				Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x2,y2,z2,1)));
-				Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, new Vector(x3,y3,z3,1)));
+				Vector p1 = new Vector(x1,y1,z1,1);
+				Vector p2 = new Vector(x2,y2,z2,1);
+				Vector p3 = new Vector(x3,y3,z3,1);
+				
+				//LookAt * View * Model
+				Matrix newMatrix = new Matrix();
+				newMatrix = Matrix.multiply(lookAt, Matrix.multiply(viewerMat, ctm));
+				
+				Vector v1 = Matrix.multiply(newMatrix, p1);				
+				Vector v2 = Matrix.multiply(newMatrix, p2);
+				Vector v3 = Matrix.multiply(newMatrix, p3);
 				
 				// Compute cosTheta for shading
 				double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
 				
-				//Projection to the points
-				v1 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v1));
-				v2 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v2));
-				v3 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v3));
-				if(cosTheta < 0) {
-					cosTheta = 0;
-				} else if (cosTheta > 1) {
-					cosTheta = 1;
-				}
+				
+				newMatrix = Matrix.multiply(projectionMatrix, newMatrix);
+				
+				v1 = Matrix.multiply(newMatrix, p1);				
+				v2 = Matrix.multiply(newMatrix, p2);
+				v3 = Matrix.multiply(newMatrix, p3);
+
 				drawTri(v1.x / v1.w, v1.y / v1.w, v1.z / v1.w, v2.x / v2.w, v2.y / v2.w, v2.z / v2.w, v3.x / v3.w,
 						v3.y / v3.w, v3.z / v3.w, newColor(r, cosTheta), newColor(g, cosTheta), newColor(b, cosTheta));
 			} else if (command.equals("SOLID_CUBE")){
-				for (int i = 0; i < 36; i += 3) {   // making 12 triangles, two for each cube face		
+				for (int i = 0; i < 36; i += 3) {   // making 12 triangles, two for each cube face	
+					Vector p1 = new Vector();
+					p1 = cubeVert[cubeInd[i]];
+					Vector p2 = new Vector();
+					p2 = cubeVert[cubeInd[i+1]];
+					Vector p3 = new Vector();
+					p3 = cubeVert[cubeInd[i+2]];
 					
-					// Multiply lookAt to ctm
-					Vector v1 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i]]));
-					Vector v2 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i+1]]));
-					Vector v3 = Matrix.multiply(viewerMat,Matrix.multiply(ctm, cubeVert[cubeInd[i+2]]));
+					//LookAt * View * Model
+					Matrix newMatrix = new Matrix();
+					newMatrix = Matrix.multiply(lookAt, Matrix.multiply(viewerMat, ctm));
+
+					Vector v1 = Matrix.multiply(newMatrix, p1);
+					Vector v2 = Matrix.multiply(newMatrix, p2);
+					Vector v3 = Matrix.multiply(newMatrix, p3);
 					
 					// Compute cosTheta for shading
 					double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
 					
-					v1 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v1));
-					v2 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v2));
-					v3 = Matrix.multiply(perspective, Matrix.multiply(lookAt,v3));
-					if(cosTheta < 0) {
-						cosTheta = 0;
-					} else if (cosTheta > 1) {
-						cosTheta = 1;
-					}
+					newMatrix = Matrix.multiply(projectionMatrix, newMatrix);
+					
+					v1 = Matrix.multiply(newMatrix, p1);				
+					v2 = Matrix.multiply(newMatrix, p2);
+					v3 = Matrix.multiply(newMatrix, p3);					
 					drawTri(v1.x / v1.w, v1.y / v1.w, v1.z / v1.w, v2.x / v2.w, v2.y / v2.w, v2.z / v2.w, v3.x / v3.w,
 							v3.y / v3.w, v3.z / v3.w, newColor(r,cosTheta), newColor(g,cosTheta), newColor(b,cosTheta));
 				}
@@ -463,7 +491,8 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 
 			}
-		}     
+		}
+		antiAlias();
 	}
 
 	/**
