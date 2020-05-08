@@ -85,7 +85,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 	 * @param b
 	 */
 	void drawTri(double x1,double y1, double z1, double x2,double y2, double z2,
-					double x3,double y3, double z3, int r,int g,int b){
+					double x3,double y3, double z3, int r,int g,int b) {
 
 		// initialize the scanline data structure (min/max x for each y-value)           
 		for (int i = 0; i < newHeight; i++) {
@@ -163,6 +163,9 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 				x = (int) Math.round(xfl);
 				drawPixel(x,y,z, r,g,b,true);
+				if (y < 0 || y >= newHeight) {
+					continue;
+				}
 
 				if (minx[y] == Integer.MIN_VALUE) {
 					minx[y] = maxx[y] = x;
@@ -204,6 +207,10 @@ public class HW3Solution extends JPanel implements KeyListener {
 			for (int x = scrX1; x <= scrX2; x++, z += mz, yfl += m) {
 
 				y = (int)Math.round(yfl);
+				if (y < 0 || y >= newHeight) {
+					continue;
+				}
+				
 				drawPixel(x,y,z, r,g,b, true);
 
 				if (minx[y] == Integer.MIN_VALUE) {
