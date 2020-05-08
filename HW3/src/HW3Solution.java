@@ -6,62 +6,86 @@ import java.io.*;
 import java.util.*;
 
 /**
+ * Phuc Pham N
  * Implement HW2SPR20Solution.java for HW3
- * @author pham19
+ * @author pham19 
  *
  */
 public class HW3Solution extends JPanel implements KeyListener {
 	private static final long serialVersionUID = -8453249965841461072L;
 	static int width;
 	static int height;
+	int[] pixels;
+	
+	// new width, new height, newArrayPixels in AntiAlias
 	int newWidth;
 	int newHeight;
-	int imageSize;
-	int[] pixels;
-	int[] nPixels;
-
+	int[] newArrayPixels;
+	
 	int[] minx;
 	int[] maxx;   
 	double[] minz;
 	double[] maxz;   
-
 	double zbuffer[][];
-
 	double vXrot = 0;
 	double vYrot = 0;
-
-
-	// to allow for initialization, checkZ turns off the z checking
+	
+	/**
+	 * An Array containing all pixels which print into the JFrame
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param r
+	 * @param g
+	 * @param b
+	 * @param checkZ
+	 */
 	void drawPixel(int x, int y, double z, int r, int g, int b, boolean checkZ) {
 		if (x < 0 || x >= newWidth) {
-			System.out.println("Bad x: "+x);
+//			System.out.println("Bad x: "+x);
 		} else if (y < 0 || y >= newHeight) {
-			System.out.println("Bad y: "+y);
+//			System.out.println("Bad y: "+y);
 		} else if (!checkZ || z > zbuffer[y][x]) {  
-			nPixels[(newHeight-y-1)*newWidth*3+x*3] = r;
-			nPixels[(newHeight-y-1)*newWidth*3+x*3+1] = g;
-			nPixels[(newHeight-y-1)*newWidth*3+x*3+2] = b;
+			newArrayPixels[(newHeight-y-1)*newWidth*3+x*3] = r;
+			newArrayPixels[(newHeight-y-1)*newWidth*3+x*3+1] = g;
+			newArrayPixels[(newHeight-y-1)*newWidth*3+x*3+2] = b;
 			zbuffer[y][x] = z;
 		}                
 	}
 	
+	/**
+	 * Anti alias technique
+	 */
 	private void antiAlias() {
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
-				pixels[row * width * 3 + col * 3] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3]
-														+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3]) / 4;
-				pixels[row * width * 3 + col * 3 + 1] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 1] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]
-															+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 1] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]) / 4;
-				pixels[row * width * 3 + col * 3 + 2] = (nPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 2] + nPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]
-															+ nPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 2] + nPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]) / 4;
+				pixels[row * width * 3 + col * 3] = (newArrayPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3] + newArrayPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3]
+														+ newArrayPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3] + newArrayPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3]) / 4;
+				pixels[row * width * 3 + col * 3 + 1] = (newArrayPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 1] + newArrayPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]
+															+ newArrayPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 1] + newArrayPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 1]) / 4;
+				pixels[row * width * 3 + col * 3 + 2] = (newArrayPixels[(2 * row) * (newWidth * 3) + (2 * col) * 3 + 2] + newArrayPixels[((2 * row) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]
+															+ newArrayPixels[(2 * row + 1) * (newWidth * 3) + (2 * col) * 3 + 2] + newArrayPixels[((2 * row + 1) * (newWidth * 3) + (2 * col) * 3) + 3 + 2]) / 4;
 			}
 		}
 	}
 
-	void drawTri(double x1,double y1, double z1,
-			double x2,double y2, double z2,
-			double x3,double y3, double z3,
-			int r,int g,int b){
+	/**
+	 * Draw triangle with 3 points and the color is red, green, and blue
+	 * @param x1
+	 * @param y1
+	 * @param z1
+	 * @param x2
+	 * @param y2
+	 * @param z2
+	 * @param x3
+	 * @param y3
+	 * @param z3
+	 * @param r
+	 * @param g
+	 * @param b
+	 */
+	void drawTri(double x1,double y1, double z1, double x2,double y2, double z2,
+					double x3,double y3, double z3, int r,int g,int b){
 
 		// initialize the scanline data structure (min/max x for each y-value)           
 		for (int i = 0; i < newHeight; i++) {
@@ -93,16 +117,25 @@ public class HW3Solution extends JPanel implements KeyListener {
 	}
 
 
+	/**
+	 * Draw line with 2 points and the color is red, green, and blue
+	 * @param x1
+	 * @param y1
+	 * @param z1
+	 * @param x2
+	 * @param y2
+	 * @param z2
+	 * @param r
+	 * @param g
+	 * @param b
+	 */
 	void drawLine(double x1, double y1, double z1, 
 			double x2, double y2, double z2,
 			int r, int g, int b) {
-
-
 		int  scrX1 = (int)Math.round(  ((x1+1)*(newWidth-1)) /2.0), 
 				scrY1 = (int)Math.round(  ((y1+1)*(newHeight-1)) /2.0), 
 				scrX2 = (int)Math.round(  ((x2+1)*(newWidth-1)) /2.0), 
 				scrY2 = (int)Math.round(  ((y2+1)*(newHeight-1))/2.0);
-
 		if (Math.abs(scrY1-scrY2) >= Math.abs(scrX1-scrX2)) {  // steep lines
 
 			if (scrY1 > scrY2) {
@@ -260,7 +293,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 				maxz = new double[newHeight];
 				
 				pixels = new int[width * height * 3];
-				nPixels = new int[newWidth * newHeight * 3];
+				newArrayPixels = new int[newWidth * newHeight * 3];
 				zbuffer = new double[newHeight][];
 
 				// init the z buffer
@@ -425,9 +458,10 @@ public class HW3Solution extends JPanel implements KeyListener {
 				Vector v3 = Matrix.multiply(newMatrix, p3);
 				
 				// Compute cosTheta for shading
-				double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
+				double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());	
 				
 				
+				//Projection * LookAt * View * Model
 				newMatrix = Matrix.multiply(projectionMatrix, newMatrix);
 				
 				v1 = Matrix.multiply(newMatrix, p1);				
@@ -456,6 +490,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 					// Compute cosTheta for shading
 					double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
 					
+					//Projection * LookAt * View * Model
 					newMatrix = Matrix.multiply(projectionMatrix, newMatrix);
 					
 					v1 = Matrix.multiply(newMatrix, p1);				
@@ -505,13 +540,18 @@ public class HW3Solution extends JPanel implements KeyListener {
 		return (int) Math.round(color * 0.5 + 0.5 * shadingFactor * color);
 	}
 
+	/**
+	 * 
+	 */
 	public HW3Solution() {
 		setPreferredSize(new Dimension(512,512));
 		setFocusable(true);
 		addKeyListener(this);        
 	}
 
-
+	/**
+	 * 
+	 */
 	public void paintComponent(Graphics g) {
 		createImage();
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -520,7 +560,10 @@ public class HW3Solution extends JPanel implements KeyListener {
 		g.drawImage(image, 0, 0, null);
 	}
 
-
+	/**
+	 * 
+	 * @param args
+	 */
 	public static void main(String args[]) {
 		JFrame frame = new JFrame("Phuc Pham N, HW3 Solution");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -539,7 +582,9 @@ public class HW3Solution extends JPanel implements KeyListener {
 
 	static File selectedFile = null;
 
-
+	/**
+	 * 
+	 */
 	static private void selectFile() {
 		int approve; //return value from JFileChooser indicates if the user hit cancel
 

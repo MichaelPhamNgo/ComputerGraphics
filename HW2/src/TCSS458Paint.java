@@ -1,610 +1,801 @@
+/**
+ * TCSS 458 - Spring 2020
+ * Assignment 3
+ */
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.image.*;
-import javax.swing.*;
-import java.io.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
+import java.io.File;
 import java.util.*;
+
+// TODO coloring is slightly different. (seems light a shading issue rather than anti-aliasing issue).
 /**
- * Implements drawing shapes homework 2
- * @author pham19@uw.edu
- * Homework 2: Draw graphs in 3D
- * Due: April 24, 2020
+ * Main class to handle Assignment 3
+ *
+ * @author John Mayer
+ * @author Steven Tran
+ * @version May 2020
  */
-public class TCSS458Paint extends JPanel implements KeyListener 
+public class TCSS458Paint extends JPanel implements KeyListener
 {
-	private static final long serialVersionUID = -6972067082022136019L;
-	private static File selectedFile = null;
-	private static int rotationValue = 3;
-	private static int width;
-	private static int height;
-	private double rotateX = 0;
-	private double rotateY = 0;
-	private int keyCode = 0;
-	private int imageSize; 
-	private int[] pixels; 
-	
-	
-	// 2D Array containing z value after computing 
-    private double[][] zBuffer;
-    
-    // A Hash Map containing a string (x, y) and its colors
-    private Map<String, int[]> colors;
-    
+    private final Queue<double[]> scan = new PriorityQueue<>(25, (o1, o2) -> (int) (o1[1] - o2[1]));
+    private final static int MAX_COLOR_RANGE = 255;
+    private final static int ROTATION_INCREMENT = 3;
+    private final static int IMAGE_SCALE = 2;
+    private final static double LIGHT_SPLIT_VALUE = 0.5;
+    private final static double[][] IDENTITY_MATRIX = {{1, 0, 0, 0},
+                                                       {0, 1, 0, 0},
+                                                       {0, 0, 1, 0},
+                                                       {0, 0, 0, 1}};
+    private final int[] colors = new int[3];
+    private double[][] inputRotationMatrix = IDENTITY_MATRIX.clone();
+    private double[][] projectionMatrix = IDENTITY_MATRIX.clone();
+    private double[][] lookAtMatrix = IDENTITY_MATRIX.clone();
+    double[][] CTM = IDENTITY_MATRIX.clone();
+    private int rotateHorizontal = 0;
+    private int rotateVertical = 0;
+    private boolean rendering = true;
+    private static int width; // real width
+    private static int height; // real height
+    private int innerWidth;
+    private int innerHeight;
+    int imageSize;
+    int[] pixels;
+    private int[] innerPixels;
+    private double[] lightSource;
+    double[][] zBuffer;
+
+
+    void drawPixel(final int x, final int y, final double z, final int r, final int g, final int b)
+    {
+        if (x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && z < zBuffer[y][x])
+        {
+            innerPixels[(innerHeight - y - 1) * innerWidth * 3 + x * 3] = r;
+            innerPixels[(innerHeight - y - 1) * innerWidth * 3 + x * 3 + 1] = g;
+            innerPixels[(innerHeight - y - 1) * innerWidth * 3 + x * 3 + 2] = b;
+            zBuffer[y][x] = z;
+        }
+    }
+
     /**
-     * Select a file to read data in current directory. 
+     * Creates a solid or wireframe depending on the parameter
+     *
+     * @param isSolid parameter to determine if you want a solid or line cube
      */
-    static private void selectFile() {
-        int approve;
+    private void createCube(final boolean isSolid)
+    {
+        final double[][] CUBE = new double[][] {{0.5, 0.5, 0.5, 1},
+                                                {0.5, 0.5, -0.5, 1},
+                                                {0.5, -0.5, 0.5, 1},
+                                                {0.5, -0.5, -0.5, 1},
+                                                {-0.5, 0.5, 0.5, 1},
+                                                {-0.5, 0.5, -0.5, 1},
+                                                {-0.5, -0.5, 0.5, 1},
+                                                {-0.5, -0.5, -0.5, 1}};
+        if (isSolid)
+        {
+            // Making the triangles for the cube
+            // front
+            scanline(CUBE[0], CUBE[4], CUBE[6]);
+            scanline(CUBE[0], CUBE[6], CUBE[2]);
+
+            // right
+            scanline(CUBE[0], CUBE[2], CUBE[3]);
+            scanline(CUBE[0], CUBE[3], CUBE[1]);
+
+            // left
+            scanline(CUBE[4], CUBE[7], CUBE[6]);
+            scanline(CUBE[4], CUBE[5], CUBE[7]);
+
+            // up
+            scanline(CUBE[0], CUBE[5], CUBE[4]);
+            scanline(CUBE[0], CUBE[1], CUBE[5]);
+
+            // down
+            scanline(CUBE[2], CUBE[7], CUBE[3]);
+            scanline(CUBE[2], CUBE[6], CUBE[7]);
+
+            // back
+            scanline(CUBE[7], CUBE[5], CUBE[1]);
+            scanline(CUBE[7], CUBE[1], CUBE[3]);
+        }
+        else
+        {
+
+            // Making the lines for the cube
+            createLine(CUBE[0], CUBE[1]);
+            createLine(CUBE[1], CUBE[3]);
+            createLine(CUBE[3], CUBE[2]);
+            createLine(CUBE[2], CUBE[0]);
+            createLine(CUBE[0], CUBE[4]);
+            createLine(CUBE[1], CUBE[5]);
+            createLine(CUBE[2], CUBE[6]);
+            createLine(CUBE[3], CUBE[7]);
+            createLine(CUBE[4], CUBE[5]);
+            createLine(CUBE[5], CUBE[7]);
+            createLine(CUBE[7], CUBE[6]);
+            createLine(CUBE[6], CUBE[4]);
+        }
+    }
+
+    private void createLine(final double[] p1, final double[] p2)
+    {
+        // projection * lookAt * interactive rotation * CTM
+        final double[][] CTMTemp = matrixMultiply(projectionMatrix, matrixMultiply(lookAtMatrix, matrixMultiply(inputRotationMatrix, CTM)));
+
+        // Transform points with CTM.
+        double[] pOne = vectorMatrixMultiply(CTMTemp, p1);
+        double[] pTwo = vectorMatrixMultiply(CTMTemp, p2);
+
+        for(int i = 0; i < pOne.length; i++)
+        {
+            pOne[i] = pOne[i] / pOne[3];
+            pTwo[i] = pTwo[i] / pTwo[3];
+        }
+
+        // Bresenham's Algorithm
+        // Psuedocode taken from https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+        bresenham(pOne, pTwo, colors);
+    }
+
+    /**
+     * Rotate about some axis with some degree
+     *
+     * @param axis   the axis to rotate about
+     * @param degree the degree to rotate
+     */
+    private void rotate(final char axis, final double degree)
+    {
+        if (axis == 'x')
+        {
+            CTM = matrixMultiply(new double[][] {{1, 0, 0, 0},
+                                                 {0, Math.cos(Math.toRadians(degree)), -Math.sin(Math.toRadians(degree)), 0},
+                                                 {0, Math.sin(Math.toRadians(degree)), Math.cos(Math.toRadians(degree)), 0},
+                                                 {0, 0, 0, 1}}, CTM);
+        }
+        else if (axis == 'y')
+        {
+            CTM = matrixMultiply(new double[][] {{Math.cos(Math.toRadians(degree)), 0, Math.sin(Math.toRadians(degree)), 0},
+                                                 {0, 1, 0, 0},
+                                                 {-Math.sin(Math.toRadians(degree)), 0, Math.cos(Math.toRadians(degree)), 0},
+                                                 {0, 0, 0, 1}}, CTM);
+        }
+        else if (axis == 'z')
+        {
+            CTM = matrixMultiply(new double[][] {{Math.cos(Math.toRadians(degree)), -Math.sin(Math.toRadians(degree)), 0, 0},
+                                                 {Math.sin(Math.toRadians(degree)), Math.cos(Math.toRadians(degree)), 0, 0},
+                                                 {0, 0, 1, 0},
+                                                 {0, 0, 0, 1}}, CTM);
+        }
+        else
+        {
+            throw new IllegalArgumentException("Invalid axis");
+        }
+    }
+
+    /**
+     * Normalizes a 3D vector
+     * If the vector is a zero vector, the zero vector will be returned
+     * @param prenormVect vector to be normalized
+     * @return normalized vector or zero vector
+     */
+    private static double[] normalize3(final double [] prenormVect)
+    {
+        final double length = Math.sqrt(Math.pow(prenormVect[0], 2) + Math.pow(prenormVect[1], 2) + Math.pow(prenormVect[2], 2));
+        if (length > 0) return new double[] {prenormVect[0] / length, prenormVect[1] / length, prenormVect[2] / length};
+        else return new double[] {0, 0, 0};
+    }
+
+    private static double[] crossproduct(final double[] firstVect, final double[] secondVect)
+    {
+        if (firstVect.length != 3 || secondVect.length != 3) throw new IllegalArgumentException("One (or more) vector are not length 3");
+        return new double[] {firstVect[1] * secondVect[2] - firstVect[2] * secondVect[1],
+                             firstVect[2] * secondVect[0] - firstVect[0] * secondVect[2],
+                             firstVect[0] * secondVect[1] - firstVect[1] * secondVect[0]};
+    }
+
+    private static double dotproduct(final double[] firstVect, final double[] secondVect)
+    {
+        if (firstVect.length != secondVect.length) throw new IllegalArgumentException("The vectors are not the same length");
+        double sum = 0;
+        for (int i = 0; i < firstVect.length; i++) sum += firstVect[i] * secondVect[i];
+        return sum;
+    }
+
+    private double[][] createLookAt(final double xEye, final double yEye, final double zEye,
+                                    final double xCenter, final double yCenter, final double zCenter,
+                                    final double xUp, final double yUp, final double zUp)
+    {
+        final double[] eye = new double[] {xEye, yEye, zEye};
+        final double[] center = new double[] {xCenter, yCenter, zCenter};
+        final double[] up = new double[] {xUp, yUp, zUp};
+
+        // n = eye - center
+        // n maps to z axis
+        double[] n = new double[3];
+        for (int i = 0; i < n.length; i++) n[i] = eye[i] - center[i];
+        n = normalize3(n);
+
+        // u maps to x axis
+        double[] u = crossproduct(up, n);
+        u = normalize3(u);
+
+        // v maps to y axis
+        double[] v = crossproduct(n, u);
+        v = normalize3(v);
+
+        final double[][] other = new double[][] {{u[0], u[1], u[2], 0},
+                                                 {v[0], v[1], v[2], 0},
+                                                 {n[0], n[1], n[2], 0},
+                                                 {0, 0, 0, 1}};
+        final double[][] eyes = new double[][] {{1, 0, 0, -eye[0]},
+                                                {0, 1, 0, -eye[1]},
+                                                {0, 0, 1, -eye[2]},
+                                                {0, 0, 0, 1}};
+
+        // left handed coordinated system
+        return matrixMultiply(other, eyes);
+    }
+
+    // the top and bottom params are in different flipped
+    private double[][] createOrthographic(final double left, final double right, final double top, final double bottom, final double near,
+                                          final double far)
+    {
+        return new double[][] {{2 / (right - left), 0, 0, -(right + left) / (right - left)},
+                               {0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom)},
+                               {0, 0, -2 / (far - near), -(far + near) / (far - near)},
+                               {0, 0, 0, 1}};
+    }
+
+    private double[][] createFrustum(final double left, final double right, final double top, final double bottom, final double near,
+                                     final double far)
+    {
+        final double[] r1 = new double[] {2 * near / (right - left), 0, 0, -near * (right + left) / (right - left)};
+        final double[] r2 = new double[] {0, 2 * near / (top - bottom), 0, -near * (top + bottom) / (top - bottom)};
+        final double[] r3 = new double[] {0, 0, -(far + near) / (far - near), 2 * far * near / (near - far)};
+        final double[] r4 = new double[] {0, 0, -1, 0};
+
+        return new double[][] {r1, r2, r3, r4};
+    }
+
+    void createImage()
+    {
+        CTM = IDENTITY_MATRIX.clone();
+        projectionMatrix = IDENTITY_MATRIX.clone();
+        inputRotationMatrix = IDENTITY_MATRIX.clone();
+        // Modify the user input rotation matrix with user input.
+        // vertical rotation
+        inputRotationMatrix = matrixMultiply(
+                new double[][] {{1, 0, 0, 0},
+                                {0, Math.cos(Math.toRadians(rotateVertical)), -Math.sin(Math.toRadians(rotateVertical)), 0},
+                                {0, Math.sin(Math.toRadians(rotateVertical)), Math.cos(Math.toRadians(rotateVertical)), 0},
+                                {0, 0, 0, 1}}, inputRotationMatrix);
+        // horizontal rotation
+        inputRotationMatrix = matrixMultiply(
+                new double[][] {{Math.cos(Math.toRadians(rotateHorizontal)), 0, Math.sin(Math.toRadians(rotateHorizontal)), 0},
+                                {0, 1, 0, 0},
+                                {-Math.sin(Math.toRadians(rotateHorizontal)), 0, Math.cos(Math.toRadians(rotateHorizontal)), 0},
+                                {0, 0, 0, 1}}, inputRotationMatrix);
+        Scanner input = getFile();
+        while (input.hasNext())
+        {
+            String command = input.next();
+            switch (command)
+            {
+                case "DIM":
+
+                    // Real image size
+                    width = input.nextInt();
+                    height = input.nextInt();
+                    imageSize = width * height;
+                    pixels = new int[imageSize * 3];
+
+                    // 2 x (height, width) for AA
+                    innerWidth = width * IMAGE_SCALE;
+                    innerHeight = height * IMAGE_SCALE;
+                    final int myInnerImageSize = innerWidth * innerHeight;
+                    innerPixels = new int[myInnerImageSize * 3];
+
+                    // Makes the background white
+                    Arrays.fill(pixels, 255);
+                    Arrays.fill(innerPixels, 255);
+
+                    zBuffer = new double[innerHeight][innerWidth];
+                    for (final double[] theDoubles : zBuffer) Arrays.fill(theDoubles, Double.POSITIVE_INFINITY);
+                    break;
+
+                case "LOOKAT":
+                    lookAtMatrix = createLookAt(input.nextDouble(), input.nextDouble(), input.nextDouble(),
+                                 input.nextDouble(), input.nextDouble(), input.nextDouble(),
+                                 input.nextDouble(), input.nextDouble(), input.nextDouble());
+                    break;
+                case "FRUSTUM":
+                    projectionMatrix = createFrustum(input.nextDouble(), input.nextDouble(), input.nextDouble(),
+                                                     input.nextDouble(), input.nextDouble(), input.nextDouble());
+                    break;
+                case "ORTHO":
+                    projectionMatrix = createOrthographic(input.nextDouble(), input.nextDouble(), input.nextDouble(),
+                                                          input.nextDouble(), input.nextDouble(), input.nextDouble());
+                    break;
+                case "LIGHT_DIRECTION":
+                    lightSource = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
+                    break;
+                case "LOAD_IDENTITY_MATRIX":
+                    CTM = IDENTITY_MATRIX.clone();
+                    break;
+
+                case "SOLID_CUBE":
+                    createCube(true);
+                    break;
+
+                case "WIREFRAME_CUBE":
+                    createCube(false);
+                    break;
+
+                case "SCALE":
+                    CTM = matrixMultiply(new double[][] {{input.nextDouble(), 0, 0, 0},
+                                                         {0, input.nextDouble(), 0, 0},
+                                                         {0, 0, input.nextDouble(), 0},
+                                                         {0, 0, 0, 1}}, CTM);
+                    break;
+
+                case "TRANSLATE":
+                    CTM = matrixMultiply(new double[][] {{1, 0, 0, input.nextDouble()},
+                                                         {0, 1, 0, input.nextDouble()},
+                                                         {0, 0, 1, input.nextDouble()},
+                                                         {0, 0, 0, 1}}, CTM);
+                    break;
+
+                case "ROTATEX":
+                    rotate('x', input.nextDouble());
+                    break;
+
+                case "ROTATEY":
+                    rotate('y', input.nextDouble());
+                    break;
+
+                case "ROTATEZ":
+                    rotate('z', input.nextDouble());
+                    break;
+
+                case "LINE":
+                    final double[] pOne = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble(), 1};
+                    final double[] pTwo = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble(), 1};
+                    createLine(pOne, pTwo);
+                    break;
+
+                case "RGB":
+                    colors[0] = (int) Math.round(input.nextDouble() * MAX_COLOR_RANGE);
+                    colors[1] = (int) Math.round(input.nextDouble() * MAX_COLOR_RANGE);
+                    colors[2] = (int) Math.round(input.nextDouble() * MAX_COLOR_RANGE);
+                    break;
+
+                case "TRI":
+                    final double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble(), 1};
+                    final double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble(), 1};
+                    final double[] p3 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble(), 1};
+
+                    scanline(p1, p2, p3);
+                    break;
+            }
+        }
+        convertToTrueSize();
+        rendering = false;
+    }
+
+    /**
+     * Creates a line using bresenham algorithm
+     *
+     * @param p1 initial point
+     * @param p2 end point
+     */
+    private void bresenham(final double[] p1, final double[] p2, final int[] lightedColors)
+    {
+        final int[] screenP1 = convertWorldToScreen(p1[0], p1[1]);
+        final int[] screenP2 = convertWorldToScreen(p2[0], p2[1]);
+        final boolean steep = Math.abs(screenP2[1] - screenP1[1]) > Math.abs(screenP2[0] - screenP1[0]);
+        // Check which dimension to perform the main math on
+        if (steep)
+        {
+            // x: end point > initial point
+            if (screenP2[1] >= screenP1[1])
+            {
+                bresenhamSteep(screenP1[0], screenP1[1], p1[2], screenP2[0], screenP2[1], p2[2], lightedColors);
+            }
+            else
+            {
+                bresenhamSteep(screenP2[0], screenP2[1], p2[2], screenP1[0], screenP1[1], p1[2], lightedColors);
+            }
+        }
+        else
+        {
+            // Ensure least to greatest
+            // y: end point > initial
+            if (screenP2[0] >= screenP1[0])
+            {
+                bresenhamGentle(screenP1[0], screenP1[1], p1[2], screenP2[0], screenP2[1], p2[2], lightedColors);
+            }
+            else
+            {
+                bresenhamGentle(screenP2[0], screenP2[1], p2[2], screenP1[0], screenP1[1], p1[2], lightedColors);
+            }
+        }
+    }
+
+    private void bresenhamSteep(final int x1, final int y1, final double z1,
+                                final int x2, final int y2, final double z2, final int[] lightedColors)
+    {
+        int deltaX = x2 - x1;
+        final int deltaY = y2 - y1;
+        int increment = 1;
+        // Slope is going up (if x is horizontal and y is vertical)
+        if (deltaX < 0)
+        {
+            increment = -1;
+            deltaX = Math.abs(deltaX);
+        }
+        int p = 2 * deltaX - deltaY;
+        int x = x1;
+        final double zySlope = (z2 - z1) / deltaY;
+        double z = z1;
+        for (int y = y1; y <= y2; y++)
+        {
+            drawPixel(x, y, z, lightedColors[0], lightedColors[1], lightedColors[2]);
+            scan.offer(new double[] {x, y, z});
+            z += zySlope;
+            if (p >= 0)
+            {
+                // Choose the x coordinate above
+                x += increment;
+                p = p - (2 * deltaY);
+            }
+            p = p + (2 * deltaX);
+        }
+    }
+
+    private void bresenhamGentle(final int x1, final int y1, final double z1,
+                                 final int x2, final int y2, final double z2, final int[] lightedColors)
+    {
+        final int deltaX = x2 - x1;
+        int deltaY = y2 - y1;
+        int increment = 1;
+
+        if (deltaY < 0)
+        {
+            increment = -1;
+            deltaY = Math.abs(deltaY);
+        }
+        int p = 2 * deltaY - deltaX;
+        int y = y1;
+        final double zxSlope = (z2 - z1) / deltaX;
+        double z = z1;
+        // Iterate through all the x's
+        for (int x = x1; x <= x2; x++)
+        {
+            drawPixel(x, y, z, lightedColors[0], lightedColors[1], lightedColors[2]);
+            scan.offer(new double[] {x, y, z});
+            z += zxSlope;
+            if (p >= 0)
+            {
+                // Choose the y coordinate above
+                y += increment;
+                p = p - (2 * deltaX);
+            }
+            p = p + (2 * deltaY);
+        }
+    }
+
+    /**
+     * Creates a triangle of a color using scanline algorithm
+     *
+     * @param v1 first point of triangle
+     * @param v2 second point of triangle
+     * @param v3 third point of triangle
+     */
+    private void scanline(final double[] v1, final double[] v2, final double[] v3)
+    {
+        scan.clear();
+
+        // lookAt * interactive rotation * CTM
+        double[][] CTMTemp = matrixMultiply(lookAtMatrix, matrixMultiply(inputRotationMatrix, CTM));
+        double[] pOne = vectorMatrixMultiply(CTMTemp, v1);
+        double[] pTwo = vectorMatrixMultiply(CTMTemp, v2);
+        double[] pThree = vectorMatrixMultiply(CTMTemp, v3);
+
+        // normalize with respect to w
+        for (int i = 0; i < pOne.length; i++)
+        {
+            pOne[i] = pOne[i] / pOne[3];
+            pTwo[i] = pTwo[i] / pTwo[3];
+            pThree[i] = pThree[i] / pThree[3];
+        }
+
+        // Calculating shading factor and new color
+        final double[] v2minusv1 = new double[] {pTwo[0] - pOne[0], pTwo[1] - pOne[1], pTwo[2] - pOne[2]};
+        final double[] v3minusv1 = new double[] {pThree[0] - pOne[0], pThree[1] - pOne[1], pThree[2] - pOne[2]};
+        final double[] normal = crossproduct(v2minusv1, v3minusv1);
+        final double result = dotproduct(normalize3(lightSource), normalize3(normal));
+        final double shadingFactor = result > 0 ? result : 0;
+        final int[] newColors = new int[] {(int) Math.round(colors[0] * LIGHT_SPLIT_VALUE + (colors[0] * LIGHT_SPLIT_VALUE * shadingFactor)),
+                                           (int) Math.round(colors[1] * LIGHT_SPLIT_VALUE + (colors[1] * LIGHT_SPLIT_VALUE * shadingFactor)),
+                                           (int) Math.round(colors[2] * LIGHT_SPLIT_VALUE + (colors[2] * LIGHT_SPLIT_VALUE * shadingFactor))};
+
+
+        // Multiply the points with the (projection * lookAt * interactive rotation * CTM)
+        CTMTemp = matrixMultiply(projectionMatrix, CTMTemp);
+        pOne = vectorMatrixMultiply(CTMTemp, v1);
+        pTwo = vectorMatrixMultiply(CTMTemp, v2);
+        pThree = vectorMatrixMultiply(CTMTemp, v3);
+
+        for (int i = 0; i < pOne.length; i++)
+        {
+            pOne[i] = pOne[i] / pOne[3];
+            pTwo[i] = pTwo[i] / pTwo[3];
+            pThree[i] = pThree[i] / pThree[3];
+        }
+
+        bresenham(pOne, pTwo, newColors);
+        bresenham(pTwo, pThree, newColors);
+        bresenham(pThree, pOne, newColors);
+
+        for (final double[] myDoubles : scan)
+        {
+            double minX = myDoubles[0], maxX = myDoubles[0];
+            double minZ = myDoubles[2], maxZ = myDoubles[2];
+            final double y = myDoubles[1];
+            // y is within the bounds of 0 and innerHeight - 1
+            if (y >= 0 && y < innerHeight)
+            {
+                // Get the min/max x and the associated z's for each y
+                for (final double[] myDubs : scan)
+                {
+                    if (myDubs[1] == y)
+                    {
+                        if (myDubs[0] < minX)
+                        {
+                            minX = myDubs[0];
+                            minZ = myDubs[2];
+                        }
+                        if (myDubs[0] > maxX)
+                        {
+                            maxX = myDubs[0];
+                            maxZ = myDubs[2];
+                        }
+                    }
+                }
+                double z = minZ;
+                final double zSlope = (maxZ - minZ) / (maxX - minX);
+                for (double x = minX; x < maxX; x++)
+                {
+                    drawPixel((int) x, (int) y, z, newColors[0], newColors[1], newColors[2]);
+                    z += zSlope;
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert the world coordinates of -1 to 1 into the respective screen coordinate described in the specifications.
+     *
+     * @param x x component of the world coordinate
+     * @param y y component of the world component
+     * @return int[] where index 0 is x coordinate of the screen coordinate and index 0 is the y coordinate of the screen coordinate
+     */
+    private int[] convertWorldToScreen(final double x, final double y)
+    {
+        return new int[] {(int) Math.round((innerWidth - 1) * (x + 1) / 2), (int) Math.round((innerHeight - 1) * (y + 1) / 2)};
+    }
+
+    /** Converts the double sized pixel array into the real size. In other words, converting 2x object back to 1x */
+    private void convertToTrueSize()
+    {
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                // Get average of 2x2 pixels in the inner pixel array and use it as a single pixel in real pixel array
+                // row * width * 3 = in the right row
+                // col * 3 = in the right column now
+                // R
+                pixels[row * width * 3 + col * 3] = (innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col) * 3] +
+                                                     innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col) * 3] +
+                                                     innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3] +
+                                                     innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3]) / 4;
+                // G
+                pixels[row * width * 3 + col * 3 + 1] = (innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col) * 3 + 1] +
+                                                         innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col) * 3 + 1] +
+                                                         innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3 + 1] +
+                                                         innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3 + 1]) / 4;
+                // B
+                pixels[row * width * 3 + col * 3 + 2] = (innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col) * 3 + 2] +
+                                                         innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col) * 3 + 2] +
+                                                         innerPixels[(IMAGE_SCALE * row) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3 + 2] +
+                                                         innerPixels[(IMAGE_SCALE * row + 1) * innerWidth * 3 + (IMAGE_SCALE * col + 1) * 3 + 2]) / 4;
+            }
+        }
+    }
+
+    public void paintComponent(Graphics g)
+    {
+        createImage();
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        WritableRaster wr_raster = image.getRaster();
+        wr_raster.setPixels(0, 0, width, height, pixels);
+        g.drawImage(image, 0, 0, null);
+    }
+
+    public static void main(final String[] args)
+    {
+        JFrame frame = new JFrame("STRAN ASSIGNMENT 3");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        selectFile();
+
+        JPanel rootPane = new TCSS458Paint();
+        getDim(rootPane);
+        rootPane.setPreferredSize(new Dimension(width, height));
+        rootPane.setFocusable(true);
+        rootPane.addKeyListener((KeyListener) rootPane);
+
+        frame.getContentPane().add(rootPane);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    static File selectedFile = null;
+
+    static private void selectFile()
+    {
+        int approve; //return value from JFileChooser indicates if the user hit cancel
+
         JFileChooser chooser = new JFileChooser();
         chooser.setCurrentDirectory(new File("."));
+
         approve = chooser.showOpenDialog(null);
-        if (approve != JFileChooser.APPROVE_OPTION) {
+        if (approve != JFileChooser.APPROVE_OPTION)
+        {
             System.exit(0);
-        } else {
+        }
+        else
+        {
             selectedFile = chooser.getSelectedFile();
         }
     }
 
-    static private Scanner getFile() {
-        Scanner input = null; 
-        try {            
-   	       input = new Scanner(selectedFile);
-        } catch (Exception e) {
-    	       JOptionPane.showMessageDialog(null, 
-                "There was an error with the file you chose.", 
-                "File Error", JOptionPane.ERROR_MESSAGE);	
-    	   }
-    	   return input;
+    static private Scanner getFile()
+    {
+        Scanner input = null;
+        try
+        {
+            input = new Scanner(selectedFile);
+        }
+        catch (Exception e)
+        {
+            JOptionPane.showMessageDialog(null,
+                                          "There was an error with the file you chose.",
+                                          "File Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return input;
     }
 
-    /**
-     * Read dimension for panel. 
-     * @param rootPane
-     */
-    static void getDim(JPanel rootPane) {
-        Scanner input = getFile();        
+    static void getDim(JPanel rootPane)
+    {
+        Scanner input = getFile();
+
         String command = input.next();
-        if (command.equals("DIM")){
+        if (command.equals("DIM"))
+        {
             width = input.nextInt();
             height = input.nextInt();
-            rootPane.setPreferredSize(new Dimension(width,height));
+            rootPane.setPreferredSize(new Dimension(width, height));
         }
     }
-    
-    /**
-     * Draw a pixel at coordinate P(x, y) with color in RGB
-     */
-    void drawPixel(int x, int y, int r, int g, int b) {
-        pixels[(height-y-1)*width*3+x*3] = r;
-        pixels[(height-y-1)*width*3+x*3+1] = g;
-        pixels[(height-y-1)*width*3+x*3+2] = b;                
-    }
-    
-    /**
-     * Draw a line from p1 (x1, y1, z1) to p2 (x1, y1, z1) with DDA algorithm
-     * @param matrix transformed matrix
-     * @param p1 point p1
-     * @param p2 point p2
-     * @param red 
-     * @param green
-     * @param blue
-     */
-    public void plotLine(Matrix matrix, double[] p1, double[] p2, int red, int green, int blue ) {
-    	// After transformation, converts p1 in world to screen
-    	double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
-		
-    	// After transformation, converts p2 in world to screen
-    	double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
-    	
-		double dx = m2[0] - m1[0]; 
-    	double dy = m2[1] - m1[1]; 
-    	double dz = m2[2] - m1[2];
-    	
-        // calculate steps required for generating pixels 
-        double slope = Math.abs(dx) >  Math.abs(dy) ?  Math.abs(dx) :  Math.abs(dy); 
-      
-        // calculate increment in x & y & z for each steps 
-        double xInc = dx / (double) slope; 
-        double yInc = dy / (double) slope; 
-        double zInc = dz / (double) slope;
-     
-        // Put pixel for each step 
-        double x = m1[0];
-        double y = m1[1]; 
-        double z = m1[2];
-        
-        // Array color
-        int[] color = new int[3];
-        
-        // Draw a line
-        for (double i = 0; i <= slope; i++) 
-        { 
-        	// how to calculate z value, watch video week2 lecture 2 drawing a line
-        	// zBuffer containing z value. If z value at (x, y) <= zBuffer(x, y) in last step
-        	// get color value of z last step to draw
-    		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
-    			color = new int[3];
-    			color = colors.get((int)Math.round(x) +","+ (int)Math.round(y));
-			} else {
-				// else if z value > z zBuffer(x, y) in last step
-				// use current color to draw and update zBuffer with a new z 
-				// and update colors map at (x, y) with a new color
-				color = new int[3];
-				color[0] = red;
-				color[1] = green;
-				color[2] = blue;
-				
-				colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
-				zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;
-			}
 
-        	drawPixel((int)Math.round(x), (int)Math.round(y), color[0], color[1], color[2]); 
-            x += xInc;           // increment in x at each step 
-            y += yInc;           // increment in y at each step 
-            z += zInc;			// increment in y at each step 
-        } 
+    @Override
+    public void keyTyped(final KeyEvent e)
+    {
+        // Maybe use this one for key stroke
     }
-    
-    /**
-	 * Use graphic in Java library to draw pixel 
-	 */
-    public void paintComponent(Graphics g) {
-        createImage();
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        WritableRaster wr_raster = image.getRaster();
-        wr_raster.setPixels(0, 0, width, height, pixels);        
-        g.drawImage(image, 0, 0, null);
-    }
-    
-    /**
-     * Draw lines or triangles.
-     */
-	void createImage() {
-    	// RGB color
-    	int r, g, b;
-    	r = g = b = 0;  
-    	Scanner input = getFile();    	
-    	Matrix matrix = new Transformation().LoadIdentityMatrix();  
-    	int rotateAX = 0;
-    	int rotateAY = 0;
-        while (input.hasNext()) {         	
-            String command = input.next();
-            if (command.equals("DIM")){
-                width = input.nextInt();
-                height = input.nextInt();
-                imageSize = width * height;
-                pixels = new int[imageSize * 3];
-                
-                // 2D Array containing z value after computing 
-                zBuffer = new double[width][height];
-                
-                // A Hash Map containing a string (x, y) and its colors
-                colors = new HashMap<String, int[]>();
-                
-                //Set background 
-                for (int i = 0; i < width; i++) {
-                	for (int j = 0; j < height; j++) {
-                		drawPixel( i, j, 255, 255, 255);
-                		zBuffer[i][j] = Double.NEGATIVE_INFINITY;	//Initial zBuffer array
-                	}                	
-                }
-            }  else if (command.equals("RGB")) {
-                r = (int) (input.nextDouble() * 255);
-                g = (int) (input.nextDouble() * 255);                
-                b = (int) (input.nextDouble() * 255);
-            } else if (command.equals("LINE")){            	
-            	// Point 1
-            	double[] p1 = new double[] {input.nextDouble(), 
-            									input.nextDouble(), 
-            										input.nextDouble()};
-            	// Point 2
-            	double[] p2 = new double[] {input.nextDouble(), 
-            									input.nextDouble(), 
-            										input.nextDouble()};            	
-            	// Draw a line through two points with a transformation matrix and its color 
-                plotLine(matrix , p1, p2, r, g, b);                
-            } else if (command.equals("LOAD_IDENTITY_MATRIX")) { // load identity matrix
-            	matrix = new Transformation().LoadIdentityMatrix();	
-            	rotateAX = 0;
-            	rotateAY = 0;
-            } else if (command.equals("SCALE")) { // scale an object
-            	matrix = new Transformation().Scaling(input.nextDouble(), 
-							input.nextDouble(),	input.nextDouble()).multiply(matrix);
-            } else if (command.equals("ROTATEZ")) {	// rotate an object via z axis  
-            	matrix = new Transformation().RotationZ(input.nextDouble()).multiply(matrix);
-            } else if (command.equals("ROTATEY")) { // rotate an object via y axis
-            	if (keyCode == 0) {
-            		rotateY = input.nextDouble();
-            	}
-            	rotateAY = 1;
-            	matrix = new Transformation().RotationY(rotateY).multiply(matrix);
-            } else if (command.equals("ROTATEX")) { // rotate an object via x axis
-            	if (keyCode == 0) {
-            		rotateX = input.nextDouble();
-            	}
-            	rotateAX = 1;
-            	matrix = new Transformation().RotationX(rotateX).multiply(matrix);
-            } else if (command.equals("TRANSLATE")) {
-            	matrix = new Transformation().Translation(input.nextDouble(), 
-            							input.nextDouble(), input.nextDouble())
-            								.multiply(matrix);
-            } else if (command.equals("SOLID_CUBE")) {            	 
-            	if (rotateAY == 0) {
-            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
-                	matrix =  rotateYMatrix.multiply(matrix);
-                }
-            	if (rotateAX == 0) {
-                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
-                	matrix = rotateXMatrix.multiply(matrix);
-                }
-            	drawSolidCube(matrix, r, g, b);
-            } else if (command.equals("WIREFRAME_CUBE")) {            	 
-            	if (rotateAY == 0) {
-            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
-                	matrix =  rotateYMatrix.multiply(matrix);
-                }
-            	if (rotateAX == 0) {
-                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
-                	matrix = rotateXMatrix.multiply(matrix);
-                }
-            	drawWireFrameCube(matrix, r, g, b);
-            } else if (command.equals("TRI")) { 
-            	if (rotateAY == 0) {
-            		Matrix rotateYMatrix = new Transformation().RotationY(rotateY);
-                	matrix =  rotateYMatrix.multiply(matrix);
-                	rotateAY = 1;
-                }
-            	if (rotateAX == 0) {
-                	Matrix rotateXMatrix = new Transformation().RotationX(rotateX);
-                	matrix = rotateXMatrix.multiply(matrix);
-                	rotateAX = 1;
-                }
-            	double[] p1 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
-            	double[] p2 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
-            	double[] p3 = new double[] {input.nextDouble(), input.nextDouble(), input.nextDouble()};
-            	drawTriangle(matrix, p1, p2, p3, r, g, b);
+
+    @Override
+    public void keyPressed(final KeyEvent e)
+    {
+        if (!rendering)
+        {
+            switch (e.getKeyCode())
+            {
+                case 40: // down
+                    rotateVertical += ROTATION_INCREMENT;
+                    repaint();
+                    break;
+                case 39: // right
+                    rotateHorizontal += ROTATION_INCREMENT;
+                    repaint();
+                    break;
+                case 38: // up
+                    rotateVertical -= ROTATION_INCREMENT;
+                    repaint();
+                    break;
+                case 37: // left
+                    rotateHorizontal -= ROTATION_INCREMENT;
+                    repaint();
+                    break;
             }
         }
     }
-	
-	private void drawTriangle(Matrix matrix, double[] p1, double[] p2, double[] p3, int r, int g, int b) {
-		//Step 1: Draw the edges of a triangle first.
-		plotLine(matrix, p1, p2, r, g, b);
-		plotLine(matrix, p2, p3, r, g, b);
-		plotLine(matrix, p3, p1, r, g, b);
-		
-		double[] m1 = pointToMatrix(matrix, width, height, p1[0], p1[1], p1[2]);
-		double[] m2 = pointToMatrix(matrix, width, height, p2[0], p2[1], p2[2]);
-		double[] m3 = pointToMatrix(matrix, width, height, p3[0], p3[1], p3[2]);
-		
-		//Step 2: Use scanline algorithm to fill the triangle.
-		//Add vertices to ArrayList to array them in x order.
-		ArrayList<Point> points = new ArrayList<Point>(); 
-		points.add(new Point(m1[0], m1[1], m1[2], m1[3]));
-		points.add(new Point(m2[0], m2[1], m2[2], m2[3]));
-		points.add(new Point(m3[0], m3[1], m3[2], m3[3]));  
-		
-		//Sorts vertices based on x
-		Collections.sort(points);
-		
-		//Draw a triangle
-		fillTriangle(points, r, g, b);
-	}
-	
-	/**
-	 * Draw a solid cube
-	 * @param matrix
-	 * @param r
-	 * @param g
-	 * @param b
-	 */
-	private void drawSolidCube(Matrix matrix, int r, int g, int b) {
-		double[] p1 = new double[] {-0.5,-0.5,-0.5};
-		double[] p2 = new double[] {0.5,-0.5,-0.5};
-		double[] p3 = new double[] {-0.5,0.5,-0.5};
-		double[] p4 = new double[] {0.5,0.5,-0.5};
-		double[] p5 = new double[] {-0.5,-0.5,0.5};
-		double[] p6 = new double[] {0.5,-0.5,0.5};
-		double[] p7 = new double[] {-0.5,0.5,0.5};
-		double[] p8 = new double[] {0.5,0.5,0.5};
-		
-		drawTriangle(matrix, p1, p5, p7, r, g, b);
-		drawTriangle(matrix, p1, p3, p7, r, g, b);
-		
-		drawTriangle(matrix, p1, p5, p6, r, g, b);
-		drawTriangle(matrix, p1, p2, p6, r, g, b);
-		
-		drawTriangle(matrix, p3, p7, p8, r, g, b);
-		drawTriangle(matrix, p3, p4, p8, r, g, b);
-				
-		drawTriangle(matrix, p5, p6, p7, r, g, b);
-		drawTriangle(matrix, p6, p7, p8, r, g, b);
-				
-		drawTriangle(matrix, p1, p2, p3, r, g, b);
-		drawTriangle(matrix, p2, p3, p4, r, g, b);
-		
-		drawTriangle(matrix, p2, p6, p8, r, g, b);
-		drawTriangle(matrix, p2, p4, p8, r, g, b);
-	}
-	
-	/**
-	 * Draw a wire frame cube
-	 * @param matrix
-	 * @param r
-	 * @param g
-	 * @param b
-	 */
-	private void drawWireFrameCube(Matrix matrix, int r, int g, int b) {
-		double[] p1 = new double[] {-0.5,-0.5,-0.5};
-		double[] p2 = new double[] {0.5,-0.5,-0.5};
-		double[] p3 = new double[] {-0.5,0.5,-0.5};
-		double[] p4 = new double[] {0.5,0.5,-0.5};
-		double[] p5 = new double[] {-0.5,-0.5,0.5};
-		double[] p6 = new double[] {0.5,-0.5,0.5};
-		double[] p7 = new double[] {-0.5,0.5,0.5};
-		double[] p8 = new double[] {0.5,0.5,0.5};
-		
-		plotLine(matrix, p1, p3, r, g, b);
-		plotLine(matrix, p1, p5, r, g, b);
-		plotLine(matrix, p3, p7, r, g, b);
-		plotLine(matrix, p5, p7, r, g, b);
-				
-		plotLine(matrix, p1, p2, r, g, b);
-		plotLine(matrix, p2, p6, r, g, b);
-		plotLine(matrix, p5, p6, r, g, b);
-		plotLine(matrix, p7, p8, r, g, b);
-				
-		plotLine(matrix, p3, p4, r, g, b);
-		plotLine(matrix, p4, p8, r, g, b);
-		plotLine(matrix, p6, p8, r, g, b);
-		plotLine(matrix, p2, p4, r, g, b);
-	}
-	
-	/**
-	 * Convert point to a matrix
-	 * @param matrix
-	 * @param width
-	 * @param height
-	 * @param v1
-	 * @param v2
-	 * @param v3
-	 * @return
-	 */
-	private double[] pointToMatrix(Matrix matrix, int width, int height, 
-											double v1, double v2, double v3) {
-		double[] data = new double[4];
-		Matrix matrix0 = new Matrix(4,1);
-    	matrix0 = matrix.multiply(new Matrix(v1, v2, v3, 1));
-    	data[0] = convertToScreen(width,matrix0.getMatrix()[0][0]);
-    	data[1] = convertToScreen(height, matrix0.getMatrix()[1][0]);
-    	data[2] = matrix0.getMatrix()[2][0];
-    	data[3] = matrix0.getMatrix()[3][0];
-    	return data;
-	}
- 
-    /**
-     * Convert x or y in world to x or y in screen
-     * @param size width or height
-     * @param c x world or y world
-     * @return x screen or y screen
-     */
-    private double convertToScreen(double size, double c) {
-    	return (size - 1) * (c + 1)/2;
+
+    @Override
+    public void keyReleased(final KeyEvent e)
+    {
+        // Maybe use this one for key stroke
     }
-    
+
     /**
-     * Compute slope
-     * @param x0 
-     * @param y0
-     * @param x1
-     * @param y1
-     * @return slope
+     * Multiplies two matrices and returns a new matrix.
+     * Let A = the First Matrix
+     * Let B = the Second Matrix
+     * C = A * B
+     *
+     * @param firstMatrix  the first matrix to be multipled
+     * @param secondMatrix the second matrix to be multiplied
+     * @return product of the matrix multiplication
      */
-    private double slope(double x0, double y0, double x1, double y1) {
-    	return (y0 - y1)/(x0 - x1);
+    static double[][] matrixMultiply(double[][] firstMatrix, final double[][] secondMatrix)
+    {
+        if (firstMatrix == null || secondMatrix == null)
+        {
+            throw new NullPointerException();
+        }
+        if (firstMatrix[0].length == secondMatrix.length)
+        {
+            final double[][] newMatrix = new double[firstMatrix.length][secondMatrix[0].length];
+            for (var i = 0; i < firstMatrix.length; i++)
+            {
+                for (var j = 0; j < secondMatrix[i].length; j++)
+                {
+                    for (var k = 0; k < firstMatrix[i].length; k++)
+                    {
+                        // Matches (first) row, (second) column
+                        // k iterates through each column value
+                        newMatrix[i][j] += firstMatrix[i][k] * secondMatrix[k][j];
+                    }
+                }
+            }
+            return newMatrix;
+        }
+        else
+        {
+            throw new IllegalArgumentException("First matrix row size must be equal to second matrix column size");
+        }
     }
-    
+
     /**
-     * Fill a triangle with 3 vertexes
-     * @param vertexes v0, v1, v2
-     * @param minY 
-     * @param maxY
-     * @param y
-     * @return an array minx, maxx
+     * Multiplies a matrix with a vector.
+     * Let A = some matrix
+     * Let B = some vector
+     * C = A * B
+     * Example with 4 x 4 matrix and 4D vector
+     * [[a, b, c ,d]   [x,
+     * [e, f, g, h]     y,
+     * [i, j, k, l]  *  z,
+     * [m, n, o, p]]    w]
+     *
+     * @param mat  the matrix to multiply with the vector
+     * @param vect the vector to multiply with the matrix
+     * @return vector that is the product of the multiplication of the matrix and vector
      */
-	private void fillTriangle(ArrayList<Point> points, int red, int green, int blue ) {			
-    	double minX = 0;
-    	double maxX = 0;
-    	Point p0 = new Point();				
-		Point p1 = new Point();				
-		Point p2 = new Point();
-    	
-    	//Sort vertices by Y
-		sortByY(points);
-		p0 = points.get(0);
-		p1 = points.get(1);
-		p2 = points.get(2);
-		
-		
-    	double minY = p0.getY();
-    	double maxY = p2.getY();
-    	
-    	for (double y = minY; y < maxY; y++) {
-    		if (y < points.get(1).getY()) {
-    			minX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p1.getX(), p1.getY());
-    			maxX = p0.getX() + (y - p0.getY()) / slope(p0.getX(), p0.getY(), p2.getX(), p2.getY());
-    		} else {
-    			minX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p1.getX(), p1.getY());
-     			maxX = p2.getX() + (y - p2.getY()) / slope(p2.getX(), p2.getY(), p0.getX(), p0.getY());
-    		}    		
-    		
-    		double temp = 0;
-        	if (maxX < minX) {
-        		temp = minX;
-        		minX = maxX;
-        		maxX = temp;
-        	}
-        	int[] color = new int[3];
-        	for (double x = minX; x < maxX; x++) {
-        		double z = zValue(p0, p1, p2, x, y);
-        		if (z <= zBuffer[(int)Math.round(x)][(int)Math.round(y)]) {
-        			color = new int[3];
-        			color = colors.get((int)Math.round(x) +","+ (int)Math.round(y));
-        		} else {
-        			color = new int[3];
-        			color[0] = red;
-    				color[1] = green;
-    				color[2] = blue; 
-        			zBuffer[(int)Math.round(x)][(int)Math.round(y)] = z;        		
-        			colors.put((int)Math.round(x) +","+ (int)Math.round(y), color);
-        		}
-        		drawPixel((int)Math.round(x), (int)Math.round(y), color[0], color[1], color[2]);
-        	}
-    	}
-    }
-	
-	/**
-	 * Compute z-value 
-	 * @param p0 point 1
-	 * @param p1 point 2
-	 * @param p2 point 3
-	 * @param x
-	 * @param y
-	 * @return z value of a plane with 3 points
-	 */
-	private double zValue(Point p0, Point p1, Point p2, double x, double y) {
-		double[] crossProduct = new double[3];
-		crossProduct[0] = (p1.getY() - p0.getY()) * (p2.getZ() - p0.getZ()) 
-							- (p2.getY() - p0.getY()) * (p1.getZ() - p0.getZ());
-		crossProduct[1] = (p1.getZ() - p0.getZ()) * (p2.getX() - p0.getX()) 
-							- (p1.getX() - p0.getX()) * (p2.getZ() - p0.getZ());
-		crossProduct[2] = (p1.getX() - p0.getX()) * (p2.getY() - p0.getY()) 
-							- (p2.getX() - p0.getX()) * (p1.getY() - p0.getY());
-		return p0.getZ() - (crossProduct[0] * (x - p0.getX()) 
-							+ crossProduct[1] * (y - p0.getY())) / crossProduct[2];
-	}
-	
-	/**
-	 * Sorts Vertices by y.
-	 * @param Vertices
-	 */
-	public void sortByY(ArrayList<Point> points) {
-		Point point = new Point();
-		for (int i = 0; i < points.size() - 1; i++) {
-			for(int j = i + 1; j < points.size(); j++) {
-				if (points.get(i).getY() > points.get(j).getY()) {
-					point = points.get(i);
-					points.set(i, points.get(j));
-					points.set(j, point);
-				}
-			}
-		}
-	}
-	
-    /**
-     * 
-     * @param args
-     */
-    public static void main(String args[]) {
-        JFrame frame = new JFrame("LINE DEMO");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        selectFile();
-        JPanel rootPane = new TCSS458Paint();    
-        getDim(rootPane);
-        rootPane.setPreferredSize(new Dimension(width,height));
-        frame.addKeyListener((KeyListener) rootPane);
-        frame.getContentPane().add(rootPane);
-        frame.pack();      
-        frame.setLocationRelativeTo( null );
-        frame.setVisible( true );
-    }
-    
-	@Override
-	public void keyPressed(KeyEvent e) {
-		keyCode = e.getKeyCode();
-	    switch( keyCode ) { 
-	        case KeyEvent.VK_UP:
-	        	rotateX -= rotationValue;	        	
-	            repaint();
-	            break;
-	        case KeyEvent.VK_DOWN:
-	        	rotateX += rotationValue;
-	            repaint();
-	            break;
-	        case KeyEvent.VK_LEFT:
-	        	rotateY -= rotationValue;
-	            repaint();
-	            break;
-	        case KeyEvent.VK_RIGHT :
-	        	rotateY += rotationValue;
-	            repaint();
-	            break;
-	     }
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {}
-
-	@Override
-	public void keyReleased(KeyEvent e) {}
-	
-	public class Point implements Comparable<Point>{
-    	private double x;
-    	private double y;
-    	private double z;
-    	private double w;
-    	
-    	public Point() {}
-    	
-    	public Point(double x, double y, double z, double w) {
-    		this.x = x;
-    		this.y = y;
-    		this.z = z;
-    		this.w = w;
-    	}
-    	
-    	public double getX() {
-    		return x;
-    	}
-
-    	public void setX(double x) {
-    		this.x = x;
-    	}
-
-    	public double getY() {
-    		return y;
-    	}
-
-    	public void setY(double y) {
-    		this.y = y;
-    	}
-
-    	public double getZ() {
-    		return z;
-    	}
-
-    	public void setZ(double z) {
-    		this.z = z;
-    	}
-
-    	public double getW() {
-    		return w;
-    	}
-
-    	public void setW(double w) {
-    		this.w = w;
-    	}
-
-    	@Override
-    	public String toString() {
-    		return "Point [x=" + this.x + ", y=" + this.y + ", z=" 
-    						+ this.z + ", w=" + this.w + "]";
-    	}
-
-    	@Override
-    	public int compareTo(Point o) {
-    		return (int)(this.x - o.x);
-    	}
+    static double[] vectorMatrixMultiply(double[][] mat, final double[] vect)
+    {
+        final double[][] vectorToMatrix = new double[vect.length][1];
+        for (var i = 0; i < vectorToMatrix.length; i++) vectorToMatrix[i][0] = vect[i];
+        final double[][] newMatrix = matrixMultiply(mat, vectorToMatrix);
+        final double[] newVector = new double[newMatrix.length];
+        for (var i = 0; i < newVector.length; i++) newVector[i] = newMatrix[i][0];
+        return newVector;
     }
 }
