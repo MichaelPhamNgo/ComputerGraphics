@@ -486,10 +486,9 @@ public class HW3Solution extends JPanel implements KeyListener {
 					Vector p3 = new Vector();
 					p3 = cubeVert[cubeInd[i+2]];
 					
-					//LookAt * View * Model
 					Matrix newMatrix = new Matrix();
-					newMatrix = Matrix.multiply(lookAt, Matrix.multiply(viewerMat, ctm));
-
+					newMatrix = Matrix.multiply(viewerMat, ctm);
+					
 					Vector v1 = Matrix.multiply(newMatrix, p1);
 					Vector v2 = Matrix.multiply(newMatrix, p2);
 					Vector v3 = Matrix.multiply(newMatrix, p3);
@@ -498,7 +497,7 @@ public class HW3Solution extends JPanel implements KeyListener {
 					double cosTheta = Vector.normalTriangle(v1,v2, v3).cosTheta(lightDirection.normalize());
 					
 					//Projection * LookAt * View * Model
-					newMatrix = Matrix.multiply(projectionMatrix, newMatrix);
+					newMatrix = Matrix.multiply(projectionMatrix, Matrix.multiply(lookAt,newMatrix));
 					
 					v1 = Matrix.multiply(newMatrix, p1);				
 					v2 = Matrix.multiply(newMatrix, p2);
